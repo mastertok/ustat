@@ -37,20 +37,25 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Наши приложения
-    'accounts.apps.AccountsConfig',
-    'courses.apps.CoursesConfig',
-    'reviews.apps.ReviewsConfig',
-    'analytics.apps.AnalyticsConfig',
-    'main.apps.MainConfig',
-    'demo',
     'ckeditor',
+    'accounts',
+    'courses',
+    'reviews',
+    'demo',
+    'main',
+    'analytics',
+    
+    # REST Framework
+    'rest_framework',
+    'corsheaders',
+    'drf_yasg',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Добавляем CORS middleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -147,6 +152,32 @@ CKEDITOR_CONFIGS = {
         'toolbar': 'Full',
         'height': 300,
         'width': '100%',
+    },
+}
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+}
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # Только для разработки! В продакшене настройте конкретные домены
+CORS_ALLOW_CREDENTIALS = True
+
+# Swagger settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'basic': {
+            'type': 'basic'
+        }
     },
 }
 
