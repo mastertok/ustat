@@ -67,8 +67,11 @@ const TestimonialSection = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-              gap: 4,
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: '1fr 1fr',
+              },
+              gap: { xs: 3, sm: 4 },
             }}
           >
             {visibleTestimonials?.map((review) => (
@@ -79,40 +82,74 @@ const TestimonialSection = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: (theme) => theme.shadows[4],
+                  },
                   '&::before': {
                     content: '"""',
                     position: 'absolute',
-                    top: 16,
-                    left: 16,
-                    fontSize: '4rem',
+                    top: { xs: 8, sm: 16 },
+                    left: { xs: 8, sm: 16 },
+                    fontSize: { xs: '3rem', sm: '4rem' },
                     color: 'primary.main',
                     opacity: 0.1,
                     fontFamily: 'serif',
                   },
                 }}
               >
-                <CardContent sx={{ flexGrow: 1, pt: 4 }}>
+                <CardContent sx={{ 
+                  flexGrow: 1, 
+                  pt: { xs: 3, sm: 4 },
+                  px: { xs: 2, sm: 3 },
+                }}>
                   <Typography
                     variant="body1"
                     paragraph
                     sx={{
-                      mb: 4,
+                      mb: { xs: 2, sm: 4 },
                       fontStyle: 'italic',
-                      minHeight: 100,
+                      minHeight: { xs: 80, sm: 100 },
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      lineHeight: 1.6,
                     }}
                   >
                     {review.comment}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    textAlign: { xs: 'center', sm: 'left' },
+                    gap: { xs: 1, sm: 2 },
+                  }}>
                     <Avatar
                       src={`https://source.unsplash.com/random/100x100/?person,${review.id}`}
-                      sx={{ width: 56, height: 56, mr: 2 }}
+                      sx={{ 
+                        width: { xs: 48, sm: 56 }, 
+                        height: { xs: 48, sm: 56 },
+                        mb: { xs: 1, sm: 0 },
+                      }}
                     />
                     <Box>
-                      <Typography variant="h6" component="div">
+                      <Typography 
+                        variant="h6" 
+                        component="div"
+                        sx={{
+                          fontSize: { xs: '1rem', sm: '1.25rem' },
+                          mb: { xs: 0.5, sm: 0 },
+                        }}
+                      >
                         {review.user.first_name} {review.user.last_name}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        }}
+                      >
                         {review.course.title}
                       </Typography>
                     </Box>
@@ -126,8 +163,8 @@ const TestimonialSection = () => {
             sx={{
               display: 'flex',
               justifyContent: 'center',
-              gap: 2,
-              mt: 4,
+              gap: { xs: 1, sm: 2 },
+              mt: { xs: 2, sm: 4 },
             }}
           >
             <IconButton
@@ -136,9 +173,11 @@ const TestimonialSection = () => {
               sx={{
                 bgcolor: 'background.default',
                 '&:hover': { bgcolor: 'grey.200' },
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 },
               }}
             >
-              <ArrowBack />
+              <ArrowBack sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </IconButton>
             <IconButton
               onClick={handleNext}
@@ -146,9 +185,11 @@ const TestimonialSection = () => {
               sx={{
                 bgcolor: 'background.default',
                 '&:hover': { bgcolor: 'grey.200' },
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 },
               }}
             >
-              <ArrowForward />
+              <ArrowForward sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </IconButton>
           </Box>
         </Box>
