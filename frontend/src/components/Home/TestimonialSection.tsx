@@ -52,7 +52,13 @@ const TestimonialSection = () => {
 
   return (
     <Box sx={{ py: 8, bgcolor: 'background.paper' }}>
-      <Container>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: '100vw',
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        }}
+      >
         <Typography
           component="h2"
           variant="h3"
@@ -69,9 +75,10 @@ const TestimonialSection = () => {
               display: 'grid',
               gridTemplateColumns: {
                 xs: '1fr',
-                md: '1fr 1fr',
+                sm: 'repeat(auto-fit, minmax(300px, 1fr))',
               },
               gap: { xs: 3, sm: 4 },
+              width: '100%',
             }}
           >
             {visibleTestimonials?.map((review) => (
@@ -193,7 +200,7 @@ const TestimonialSection = () => {
             </IconButton>
           </Box>
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 };

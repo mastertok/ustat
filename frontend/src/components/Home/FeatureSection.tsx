@@ -44,7 +44,13 @@ const features = [
 const FeatureSection = () => {
   return (
     <Box sx={{ py: 8, bgcolor: 'background.default' }}>
-      <Container>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: '100vw',
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        }}
+      >
         <Typography
           component="h2"
           variant="h3"
@@ -55,7 +61,14 @@ const FeatureSection = () => {
           Почему выбирают Устат
         </Typography>
 
-        <Grid container spacing={4}>
+        <Grid
+          container
+          spacing={{ xs: 2, sm: 3, md: 4 }}
+          sx={{
+            width: '100%',
+            margin: 0,
+          }}
+        >
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
@@ -107,7 +120,7 @@ const FeatureSection = () => {
             );
           })}
         </Grid>
-      </Container>
+      </Box>
     </Box>
   );
 };

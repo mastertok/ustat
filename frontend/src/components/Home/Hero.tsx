@@ -42,13 +42,20 @@ const Hero = () => {
         }}
       />
 
-      <Container maxWidth="lg">
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: '100vw',
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        }}
+      >
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
             alignItems: 'center',
             gap: { xs: 4, md: 8 },
+            maxWidth: '100%',
           }}
         >
           {/* Левая колонка с текстом */}
@@ -166,7 +173,7 @@ const Hero = () => {
             </Box>
           )}
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 };

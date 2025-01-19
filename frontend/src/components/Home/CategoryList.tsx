@@ -40,25 +40,44 @@ const CategoryList = () => {
   if (isLoading) {
     return (
       <Box sx={{ py: 8, bgcolor: 'background.default' }}>
-        <Container>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: '100vw',
+            px: { xs: 2, sm: 4, md: 6, lg: 8 },
+          }}
+        >
           <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6 }}>
             Категории курсов
           </Typography>
-          <Grid container spacing={3}>
+          <Grid 
+            container 
+            spacing={{ xs: 2, sm: 3, md: 4 }}
+            sx={{
+              width: '100%',
+              margin: 0,
+            }}
+          >
             {[1, 2, 3, 4].map((item) => (
               <Grid item xs={6} sm={3} key={item}>
                 <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 2 }} />
               </Grid>
             ))}
           </Grid>
-        </Container>
+        </Box>
       </Box>
     );
   }
 
   return (
     <Box sx={{ py: 8, bgcolor: 'background.default' }}>
-      <Container>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: '100vw',
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        }}
+      >
         <Typography
           component="h2"
           variant="h3"
@@ -68,7 +87,14 @@ const CategoryList = () => {
         >
           Категории курсов
         </Typography>
-        <Grid container spacing={3}>
+        <Grid 
+          container 
+          spacing={{ xs: 2, sm: 3, md: 4 }}
+          sx={{
+            width: '100%',
+            margin: 0,
+          }}
+        >
           {categories?.map((category) => {
             const Icon = categoryIcons[category.name] || categoryIcons.default;
             return (
@@ -147,7 +173,7 @@ const CategoryList = () => {
             );
           })}
         </Grid>
-      </Container>
+      </Box>
     </Box>
   );
 };
