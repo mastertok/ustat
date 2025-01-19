@@ -8,7 +8,7 @@ import { Review } from '../../types/api';
 const TestimonialSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  const { data: reviews, isLoading, error } = useQuery<Review[]>({
+  const { data: reviews, isLoading } = useQuery<Review[]>({
     queryKey: ['testimonials'],
     queryFn: async () => {
       try {

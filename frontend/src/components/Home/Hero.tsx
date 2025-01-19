@@ -2,35 +2,68 @@ import { Box, Container, Stack, Typography, Button } from '@mui/material';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import { useEffect, useState } from 'react';
 
+const headerPhrases = [
+  'Учитесь у лучших преподавателей',
+  'Развивайте свои навыки',
+  'Достигайте своих целей',
+];
+
+const phrases = [
+  'Получите качественное образование и развивайте свои навыки',
+  'Станьте востребованным специалистом в своей области',
+  'Учитесь у практикующих экспертов онлайн',
+  'Развивайте свои профессиональные навыки',
+];
+
 const Hero = () => {
-  const phrases = [
-    'Получите качественное образование и развивайте свои навыки',
-    'Станьте востребованным специалистом в своей области',
-    'Учитесь у практикующих экспертов онлайн',
-    'Развивайте свои профессиональные навыки',
-  ];
-
-  const headerPhrases = [
-    'Станьте экспертом',
-    'Учитесь у лучших',
-    'Делитесь знаниями',
-    'Создавайте курсы'
-  ];
-
-  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
-  const [displayText, setDisplayText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
   const [currentHeaderIndex, setCurrentHeaderIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
   const [isVisible, setIsVisible] = useState(true);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
 
-  const handleVideoLoad = () => {
-    setIsVideoLoaded(true);
-  };
+  const fullText = 'Онлайн-обучение для вашего профессионального роста';
+  const typingSpeed = 50;
+  let typingTimeout: ReturnType<typeof setTimeout>;
 
-  // Анимация для подзаголовка
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    const typeText = () => {
+      let currentIndex = 0;
+      const type = () => {
+        if (currentIndex <= fullText.length) {
+          setDisplayText(fullText.slice(0, currentIndex));
+          currentIndex++;
+          typingTimeout = setTimeout(type, typingSpeed);
+        }
+      };
+      type();
+    };
+
+    typeText();
+
+    return () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentHeaderIndex((prevIndex) =>
+          prevIndex === headerPhrases.length - 1 ? 0 : prevIndex + 1
+        );
+        setIsVisible(true);
+      }, 1000);
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
     const currentPhrase = phrases[currentPhraseIndex];
 
     if (isDeleting) {
@@ -56,18 +89,6 @@ const Hero = () => {
 
     return () => clearTimeout(timeout);
   }, [displayText, currentPhraseIndex, isDeleting]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        setCurrentHeaderIndex((prev) => (prev + 1) % headerPhrases.length);
-        setIsVisible(true);
-      }, 1000);
-    }, 8000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <Box

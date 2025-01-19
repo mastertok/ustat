@@ -29,13 +29,29 @@ const categoryIcons: { [key: string]: any } = {
 };
 
 const CategoryList = () => {
-  const { data: categories, isLoading } = useQuery<Category[]>({
+  const { data: categories, isLoading, error } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const response = await api.get('/courses/categories/');
-      return response.data.results;
+      try {
+        const response = await api.get('/api/v1/courses/categories/');
+        return response.data.results;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
     },
   });
+
+  if (error) {
+    console.error('Error in CategoryList:', error);
+    return (
+      <Box sx={{ py: 8, bgcolor: 'background.default' }}>
+        <Typography color="error" align="center">
+          Ошибка при загрузке категорий
+        </Typography>
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -100,7 +116,7 @@ const CategoryList = () => {
             margin: 0,
           }}
         >
-          {categories?.map((category) => {
+          {categories?.map((category: Category) => {
             const Icon = categoryIcons[category.name] || categoryIcons.default;
             return (
               <Grid 
