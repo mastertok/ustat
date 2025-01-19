@@ -1,5 +1,8 @@
-import { Box, Card, CardContent, Typography, Container, Grid } from '@mui/material';
+import { Box, Card, CardContent, Typography, Container, Grid, Skeleton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../services/api';
+import { Category } from '../../types/api';
 import {
   Code,
   Business,
@@ -9,20 +12,50 @@ import {
   FitnessCenter,
   MusicNote,
   Camera,
+  School,
 } from '@mui/icons-material';
 
-const categories = [
-  { name: 'Программирование', icon: Code, color: '#2196f3' },
-  { name: 'Бизнес', icon: Business, color: '#4caf50' },
-  { name: 'Дизайн', icon: Brush, color: '#f44336' },
-  { name: 'Языки', icon: Language, color: '#ff9800' },
-  { name: 'Психология', icon: Psychology, color: '#9c27b0' },
-  { name: 'Спорт', icon: FitnessCenter, color: '#795548' },
-  { name: 'Музыка', icon: MusicNote, color: '#607d8b' },
-  { name: 'Фотография', icon: Camera, color: '#00bcd4' },
-];
+// Маппинг иконок для категорий
+const categoryIcons: { [key: string]: any } = {
+  'Программирование': Code,
+  'Бизнес': Business,
+  'Дизайн': Brush,
+  'Языки': Language,
+  'Психология': Psychology,
+  'Спорт': FitnessCenter,
+  'Музыка': MusicNote,
+  'Фотография': Camera,
+  'default': School,
+};
 
 const CategoryList = () => {
+  const { data: categories, isLoading } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await api.get('/courses/categories/');
+      return response.data.results;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Box sx={{ py: 8, bgcolor: 'background.default' }}>
+        <Container>
+          <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6 }}>
+            Категории курсов
+          </Typography>
+          <Grid container spacing={3}>
+            {[1, 2, 3, 4].map((item) => (
+              <Grid item xs={6} sm={3} key={item}>
+                <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 2 }} />
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ py: 8, bgcolor: 'background.default' }}>
       <Container>
@@ -36,13 +69,13 @@ const CategoryList = () => {
           Категории курсов
         </Typography>
         <Grid container spacing={3}>
-          {categories.map((category) => {
-            const Icon = category.icon;
+          {categories?.map((category) => {
+            const Icon = categoryIcons[category.name] || categoryIcons.default;
             return (
-              <Grid item xs={6} sm={3} key={category.name}>
+              <Grid item xs={6} sm={3} key={category.id}>
                 <Card
                   component={RouterLink}
-                  to={`/courses?category=${category.name}`}
+                  to={`/courses?category=${category.slug}`}
                   sx={{
                     height: '100%',
                     display: 'flex',
@@ -64,8 +97,8 @@ const CategoryList = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: `${category.color}15`,
-                        color: category.color,
+                        bgcolor: 'primary.light',
+                        color: 'primary.main',
                         mb: 2,
                         mx: 'auto',
                       }}
@@ -79,6 +112,21 @@ const CategoryList = () => {
                       color="text.primary"
                     >
                       {category.name}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      align="center"
+                      color="text.secondary"
+                      sx={{
+                        mt: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
+                      {category.description}
                     </Typography>
                   </CardContent>
                 </Card>

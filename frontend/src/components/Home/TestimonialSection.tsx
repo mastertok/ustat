@@ -1,49 +1,54 @@
 import { useState } from 'react';
-import { Box, Container, Typography, Card, CardContent, Avatar, IconButton } from '@mui/material';
+import { Box, Container, Typography, Card, CardContent, Avatar, IconButton, Skeleton } from '@mui/material';
 import { ArrowBack, ArrowForward } from '@mui/icons-material';
-
-const testimonials = [
-  {
-    id: 1,
-    name: 'Азамат Кадыров',
-    role: 'Студент',
-    avatar: 'https://source.unsplash.com/random/100x100/?man,1',
-    text: 'Благодаря Устат я смог освоить программирование с нуля. Преподаватели очень внимательные и всегда готовы помочь.',
-  },
-  {
-    id: 2,
-    name: 'Айгуль Асанова',
-    role: 'Дизайнер',
-    avatar: 'https://source.unsplash.com/random/100x100/?woman,1',
-    text: 'Отличная платформа для повышения квалификации. Курсы современные и актуальные, а формат обучения очень удобный.',
-  },
-  {
-    id: 3,
-    name: 'Бакыт Алиев',
-    role: 'Предприниматель',
-    avatar: 'https://source.unsplash.com/random/100x100/?man,2',
-    text: 'Прошел курс по бизнес-планированию. Информация подается структурировано, много практических заданий.',
-  },
-  {
-    id: 4,
-    name: 'Жылдыз Токтоматова',
-    role: 'Учитель английского',
-    avatar: 'https://source.unsplash.com/random/100x100/?woman,2',
-    text: 'Устат помог мне освоить новые методики преподавания. Теперь мои уроки стали еще интереснее для учеников.',
-  },
-];
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../services/api';
+import { Review } from '../../types/api';
 
 const TestimonialSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const visibleTestimonials = testimonials.slice(currentIndex, currentIndex + 2);
+  
+  const { data: reviews, isLoading } = useQuery<Review[]>({
+    queryKey: ['testimonials'],
+    queryFn: async () => {
+      const response = await api.get('/reviews/reviews/', {
+        params: {
+          rating__gte: 4, // Только хорошие отзывы
+          ordering: '-created_at', // Сначала новые
+          limit: 10,
+        },
+      });
+      return response.data.results;
+    },
+  });
 
   const handlePrev = () => {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => Math.min(testimonials.length - 2, prev + 1));
+    if (!reviews) return;
+    setCurrentIndex((prev) => Math.min(reviews.length - 2, prev + 1));
   };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ py: 8, bgcolor: 'background.paper' }}>
+        <Container>
+          <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6 }}>
+            Отзывы наших студентов
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
+            {[1, 2].map((item) => (
+              <Skeleton key={item} variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
+            ))}
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  const visibleTestimonials = reviews?.slice(currentIndex, currentIndex + 2);
 
   return (
     <Box sx={{ py: 8, bgcolor: 'background.paper' }}>
@@ -66,9 +71,9 @@ const TestimonialSection = () => {
               gap: 4,
             }}
           >
-            {visibleTestimonials.map((testimonial) => (
+            {visibleTestimonials?.map((review) => (
               <Card
-                key={testimonial.id}
+                key={review.id}
                 sx={{
                   height: '100%',
                   display: 'flex',
@@ -96,19 +101,19 @@ const TestimonialSection = () => {
                       minHeight: 100,
                     }}
                   >
-                    {testimonial.text}
+                    {review.comment}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Avatar
-                      src={testimonial.avatar}
+                      src={`https://source.unsplash.com/random/100x100/?person,${review.id}`}
                       sx={{ width: 56, height: 56, mr: 2 }}
                     />
                     <Box>
                       <Typography variant="h6" component="div">
-                        {testimonial.name}
+                        {review.user.first_name} {review.user.last_name}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {testimonial.role}
+                        {review.course.title}
                       </Typography>
                     </Box>
                   </Box>
@@ -137,7 +142,7 @@ const TestimonialSection = () => {
             </IconButton>
             <IconButton
               onClick={handleNext}
-              disabled={currentIndex >= testimonials.length - 2}
+              disabled={!reviews || currentIndex >= reviews.length - 2}
               sx={{
                 bgcolor: 'background.default',
                 '&:hover': { bgcolor: 'grey.200' },
