@@ -1,58 +1,27 @@
 import { Box, Container, Typography, Link, Grid } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
 
 const Footer = () => {
   return (
     <Box
       component="footer"
       sx={{
-        py: 3,
-        px: 2,
+        width: '100%',
+        bgcolor: 'background.paper',
+        py: 6,
         mt: 'auto',
-        backgroundColor: (theme) =>
-          theme.palette.mode === 'light'
-            ? theme.palette.grey[200]
-            : theme.palette.grey[800],
       }}
     >
       <Container maxWidth="lg">
         <Grid container spacing={4}>
           <Grid item xs={12} sm={4}>
             <Typography variant="h6" color="text.primary" gutterBottom>
-              Устат
+              О нас
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Образовательная платформа для профессионального роста
+              Устат - современная образовательная платформа, 
+              предоставляющая качественные онлайн-курсы для 
+              профессионального развития.
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography variant="h6" color="text.primary" gutterBottom>
-              Ссылки
-            </Typography>
-            <Link
-              component={RouterLink}
-              to="/courses"
-              color="text.secondary"
-              display="block"
-            >
-              Курсы
-            </Link>
-            <Link
-              component={RouterLink}
-              to="/teachers"
-              color="text.secondary"
-              display="block"
-            >
-              Преподаватели
-            </Link>
-            <Link
-              component={RouterLink}
-              to="/about"
-              color="text.secondary"
-              display="block"
-            >
-              О нас
-            </Link>
           </Grid>
           <Grid item xs={12} sm={4}>
             <Typography variant="h6" color="text.primary" gutterBottom>
@@ -64,15 +33,35 @@ const Footer = () => {
             <Typography variant="body2" color="text.secondary">
               Телефон: +996 XXX XXX XXX
             </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Адрес: г. Бишкек, ул. Примерная 123
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h6" color="text.primary" gutterBottom>
+              Ссылки
+            </Typography>
+            <Link href="#" color="text.secondary" display="block">
+              Условия использования
+            </Link>
+            <Link href="#" color="text.secondary" display="block">
+              Политика конфиденциальности
+            </Link>
+            <Link href="#" color="text.secondary" display="block">
+              FAQ
+            </Link>
           </Grid>
         </Grid>
-        <Box mt={3}>
-          <Typography variant="body2" color="text.secondary" align="center">
-            {'© '}
-            {new Date().getFullYear()}
-            {' Устат. Все права защищены.'}
-          </Typography>
-        </Box>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          align="center"
+          sx={{ mt: 4 }}
+        >
+          {'© '}
+          {new Date().getFullYear()}
+          {' Устат. Все права защищены.'}
+        </Typography>
       </Container>
     </Box>
   );
