@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ teacher.user.get_full_name }} - Профиль преподавателя{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Профиль учителя -->
+    <div class="row mb-5">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if teacher.user.avatar %}
+                        <img src="{{ teacher.user.avatar.url }}" alt="{{ teacher.user.get_full_name }}" class="rounded-circle img-fluid mb-3" style="max-width: 200px;">
+                    {% else %}
+                        <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="rounded-circle img-fluid mb-3" style="max-width: 200px;">
+                    {% endif %}
+                    <h3 class="card-title">{{ teacher.user.get_full_name }}</h3>
+                    <div class="teacher-rating mb-2">
+                        <span class="h4">{{ teacher.rating|floatformat:1 }}</span>
+                        <i class="fas fa-star text-warning"></i>
+                        <small class="text-muted">({{ teacher.reviews_count }} отзывов)</small>
+                    </div>
+                    {% if teacher.specializations.exists %}
+                        <div class="mb-3">
+                            {% for spec in teacher.specializations.all %}
+                                <span class="badge bg-primary">{{ spec.name }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if request.user == teacher.user %}
+                        <a href="{% url 'accounts:teacher_profile_edit' %}" class="btn btn-primary">Редактировать профиль</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Статистика</h5>
+                    <div class="row text-center">
+                        <div class="col">
+                            <h4>{{ teacher.students_count }}</h4>
+                            <small class="text-muted">Учеников</small>
+                        </div>
+                        <div class="col">
+                            <h4>{{ teacher.published_courses }}</h4>
+                            <small class="text-muted">Курсов</small>
+                        </div>
+                        <div class="col">
+                            <h4>{{ teacher.total_experience_years }}</h4>
+                            <small class="text-muted">Лет опыта</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Социальные сети -->
+            {% if teacher.social_links %}
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Контакты</h5>
+                    <div class="social-links">
+                        {% for platform, link in teacher.social_links.items %}
+                            <a href="{{ link }}" class="btn btn-outline-primary btn-sm me-2 mb-2">
+                                <i class="fab fa-{{ platform }}"></i> {{ platform|title }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <!-- О преподавателе -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">О преподавателе</h4>
+                    <p>{{ teacher.user.bio|linebreaks }}</p>
+                    
+                    {% if teacher.teaching_style %}
+                    <h5>Стиль преподавания</h5>
+                    <p>{{ teacher.teaching_style|linebreaks }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Образование -->
+            {% if teacher.education_records.exists %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Образование</h4>
+                    {% for edu in teacher.education_records.all %}
+                    <div class="mb-3">
+                        <h5>{{ edu.institution }}</h5>
+                        <p class="mb-1">{{ edu.degree }} - {{ edu.field_of_study }}</p>
+                        <small class="text-muted">
+                            {{ edu.start_date|date:"Y" }} - {% if edu.end_date %}{{ edu.end_date|date:"Y" }}{% else %}По настоящее время{% endif %}
+                        </small>
+                        {% if edu.description %}
+                        <p class="mt-2">{{ edu.description }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Опыт работы -->
+            {% if teacher.work_experiences.exists %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Опыт работы</h4>
+                    {% for exp in teacher.work_experiences.all %}
+                    <div class="mb-3">
+                        <h5>{{ exp.position }}</h5>
+                        <h6>{{ exp.company }}</h6>
+                        <small class="text-muted">
+                            {{ exp.start_date|date:"F Y" }} - 
+                            {% if exp.is_current %}
+                                По настоящее время
+                            {% else %}
+                                {{ exp.end_date|date:"F Y" }}
+                            {% endif %}
+                        </small>
+                        {% if exp.description %}
+                        <p class="mt-2">{{ exp.description }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Достижения -->
+            {% if teacher.achievement_records.exists %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Достижения и сертификаты</h4>
+                    <div class="row">
+                        {% for achievement in teacher.achievement_records.all %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ achievement.title }}</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">{{ achievement.issuer }}</h6>
+                                    <p class="card-text">{{ achievement.description }}</p>
+                                    <small class="text-muted">Получено: {{ achievement.date_received|date:"F Y" }}</small>
+                                    {% if achievement.certificate_link %}
+                                        <a href="{{ achievement.certificate_link }}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
+                                            Посмотреть сертификат
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Курсы учителя -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-4">Курсы преподавателя</h3>
+            
+            <!-- Фильтры -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Категория</label>
+                            <select name="category" class="form-select">
+                                <option value="">Все категории</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat.category__slug }}" {% if request.GET.category == cat.category__slug %}selected{% endif %}>
+                                        {{ cat.category__name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Цена</label>
+                            <select name="price" class="form-select">
+                                <option value="">По умолчанию</option>
+                                <option value="asc" {% if request.GET.price == 'asc' %}selected{% endif %}>Сначала дешевле</option>
+                                <option value="desc" {% if request.GET.price == 'desc' %}selected{% endif %}>Сначала дороже</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Сортировка</label>
+                            <select name="popularity" class="form-select">
+                                <option value="">По умолчанию</option>
+                                <option value="rating" {% if request.GET.popularity == 'rating' %}selected{% endif %}>По рейтингу</option>
+                                <option value="students" {% if request.GET.popularity == 'students' %}selected{% endif %}>По количеству учеников</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Список курсов -->
+            <div class="row">
+                {% for course in courses %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        {% if course.cover_image %}
+                            <img src="{{ course.cover_image.url }}" class="card-img-top" alt="{{ course.title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ course.title }}</h5>
+                            <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="price">
+                                    {% if course.discount_price %}
+                                        <span class="text-muted text-decoration-line-through">{{ course.price }} ₽</span>
+                                        <span class="text-primary h5">{{ course.discount_price }} ₽</span>
+                                    {% else %}
+                                        <span class="text-primary h5">{{ course.price }} ₽</span>
+                                    {% endif %}
+                                </div>
+                                <div class="rating">
+                                    <i class="fas fa-star text-warning"></i>
+                                    <span>{{ course.reviews.aggregate.avg_rating|default:0|floatformat:1 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-primary btn-sm">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        У преподавателя пока нет опубликованных курсов.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Автоматическое обновление формы при изменении фильтров
+    const filterForm = document.querySelector('form');
+    const filterSelects = filterForm.querySelectorAll('select');
+    
+    filterSelects.forEach(select => {
+        select.addEventListener('change', () => {
+            filterForm.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

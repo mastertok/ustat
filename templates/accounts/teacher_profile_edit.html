@@ -1,0 +1,516 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Редактирование профиля{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex flex-column align-items-center text-center">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" alt="Avatar" class="rounded-circle" width="150">
+                        {% else %}
+                            <img src="{% static 'images/default-avatar.png' %}" alt="Avatar" class="rounded-circle" width="150">
+                        {% endif %}
+                        <div class="mt-3">
+                            <h4>{{ user.get_full_name }}</h4>
+                            <p class="text-muted font-size-sm">{{ user.email }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="list-group mt-4">
+                <a href="#basic" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                    Основная информация
+                </a>
+                <a href="#education" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Образование
+                </a>
+                <a href="#experience" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Опыт работы
+                </a>
+                <a href="#achievements" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    Достижения
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="tab-content">
+                <!-- Основная информация -->
+                <div class="tab-pane fade show active" id="basic">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Основная информация</h5>
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ form.first_name.label }}</label>
+                                        {{ form.first_name }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ form.last_name.label }}</label>
+                                        {{ form.last_name }}
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ form.email.label }}</label>
+                                        {{ form.email }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ form.phone.label }}</label>
+                                        {{ form.phone }}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.avatar.label }}</label>
+                                    {{ form.avatar }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.bio.label }}</label>
+                                    {{ form.bio }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.specializations.label }}</label>
+                                    {{ form.specializations }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.teaching_style.label }}</label>
+                                    {{ form.teaching_style }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.social_links.label }}</label>
+                                    {{ form.social_links }}
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Образование -->
+                <div class="tab-pane fade" id="education">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="card-title">Образование</h5>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEducationModal">
+                                    Добавить образование
+                                </button>
+                            </div>
+                            
+                            <div id="educationList">
+                                {% for edu in teacher.education_records.all %}
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title">{{ edu.institution }}</h5>
+                                            <button class="btn btn-danger btn-sm delete-education" data-id="{{ edu.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ edu.degree }} - {{ edu.field_of_study }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                {{ edu.start_date|date:"Y" }} - {% if edu.end_date %}{{ edu.end_date|date:"Y" }}{% else %}По настоящее время{% endif %}
+                                            </small>
+                                        </p>
+                                        {% if edu.description %}
+                                        <p class="card-text">{{ edu.description }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p class="text-muted">Нет добавленного образования</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Опыт работы -->
+                <div class="tab-pane fade" id="experience">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="card-title">Опыт работы</h5>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExperienceModal">
+                                    Добавить опыт работы
+                                </button>
+                            </div>
+                            
+                            <div id="experienceList">
+                                {% for exp in teacher.work_experiences.all %}
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title">{{ exp.position }}</h5>
+                                            <button class="btn btn-danger btn-sm delete-experience" data-id="{{ exp.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ exp.company }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                {{ exp.start_date|date:"F Y" }} - 
+                                                {% if exp.is_current %}
+                                                    По настоящее время
+                                                {% else %}
+                                                    {{ exp.end_date|date:"F Y" }}
+                                                {% endif %}
+                                            </small>
+                                        </p>
+                                        {% if exp.description %}
+                                        <p class="card-text">{{ exp.description }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p class="text-muted">Нет добавленного опыта работы</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Достижения -->
+                <div class="tab-pane fade" id="achievements">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="card-title">Достижения</h5>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAchievementModal">
+                                    Добавить достижение
+                                </button>
+                            </div>
+                            
+                            <div id="achievementList">
+                                {% for achievement in teacher.achievement_records.all %}
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title">{{ achievement.title }}</h5>
+                                            <button class="btn btn-danger btn-sm delete-achievement" data-id="{{ achievement.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ achievement.issuer }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">Получено: {{ achievement.date_received|date:"F Y" }}</small>
+                                        </p>
+                                        {% if achievement.description %}
+                                        <p class="card-text">{{ achievement.description }}</p>
+                                        {% endif %}
+                                        {% if achievement.certificate_link %}
+                                        <a href="{{ achievement.certificate_link }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                            Посмотреть сертификат
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p class="text-muted">Нет добавленных достижений</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальные окна -->
+<!-- Добавление образования -->
+<div class="modal fade" id="addEducationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить образование</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="educationForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Учебное заведение</label>
+                        <input type="text" name="institution" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Степень/Квалификация</label>
+                        <input type="text" name="degree" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Направление обучения</label>
+                        <input type="text" name="field_of_study" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дата начала</label>
+                            <input type="date" name="start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дата окончания</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveEducation">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Добавление опыта работы -->
+<div class="modal fade" id="addExperienceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить опыт работы</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="experienceForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Компания/Организация</label>
+                        <input type="text" name="company" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Должность</label>
+                        <input type="text" name="position" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дата начала</label>
+                            <input type="date" name="start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дата окончания</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_current" class="form-check-input" id="is_current">
+                            <label class="form-check-label" for="is_current">Текущее место работы</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание обязанностей</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveExperience">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Добавление достижения -->
+<div class="modal fade" id="addAchievementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить достижение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="achievementForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Название</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Кем выдано</label>
+                        <input type="text" name="issuer" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дата получения</label>
+                        <input type="date" name="date_received" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Файл сертификата</label>
+                        <input type="file" name="certificate_file" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ссылка на сертификат</label>
+                        <input type="url" name="certificate_link" class="form-control">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveAchievement">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка формы образования
+    document.getElementById('saveEducation').addEventListener('click', function() {
+        const form = document.getElementById('educationForm');
+        const formData = new FormData(form);
+        
+        fetch('{% url "accounts:add_education" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        });
+    });
+
+    // Обработка формы опыта работы
+    document.getElementById('saveExperience').addEventListener('click', function() {
+        const form = document.getElementById('experienceForm');
+        const formData = new FormData(form);
+        
+        fetch('{% url "accounts:add_work_experience" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        });
+    });
+
+    // Обработка формы достижений
+    document.getElementById('saveAchievement').addEventListener('click', function() {
+        const form = document.getElementById('achievementForm');
+        const formData = new FormData(form);
+        
+        fetch('{% url "accounts:add_achievement" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        });
+    });
+
+    // Обработка удаления образования
+    document.querySelectorAll('.delete-education').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            if (confirm('Вы уверены, что хотите удалить это образование?')) {
+                fetch(`/accounts/education/${id}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    // Обработка удаления опыта работы
+    document.querySelectorAll('.delete-experience').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            if (confirm('Вы уверены, что хотите удалить этот опыт работы?')) {
+                fetch(`/accounts/experience/${id}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    // Обработка удаления достижений
+    document.querySelectorAll('.delete-achievement').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            if (confirm('Вы уверены, что хотите удалить это достижение?')) {
+                fetch(`/accounts/achievement/${id}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    // Обработка чекбокса текущего места работы
+    document.getElementById('is_current').addEventListener('change', function() {
+        const endDateInput = document.querySelector('input[name="end_date"]');
+        endDateInput.disabled = this.checked;
+        if (this.checked) {
+            endDateInput.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}

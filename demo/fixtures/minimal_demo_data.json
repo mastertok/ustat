@@ -1,0 +1,277 @@
+[
+  {
+    "model": "courses.category",
+    "pk": 1,
+    "fields": {
+      "name": "Математика",
+      "slug": "mathematics",
+      "description": "Курсы по математике всех уровней",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.category",
+    "pk": 2,
+    "fields": {
+      "name": "Английский язык",
+      "slug": "english",
+      "description": "Курсы английского языка",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.category",
+    "pk": 3,
+    "fields": {
+      "name": "Программирование",
+      "slug": "programming",
+      "description": "Курсы программирования",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.category",
+    "pk": 4,
+    "fields": {
+      "name": "Дизайн",
+      "slug": "design",
+      "description": "Курсы по дизайну",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.category",
+    "pk": 5,
+    "fields": {
+      "name": "Физика",
+      "slug": "physics",
+      "description": "Курсы по физике",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 1,
+    "fields": {
+      "title": "Алгебра для начинающих",
+      "slug": "algebra-basics",
+      "description": "<p>Базовый курс алгебры</p>",
+      "excerpt": "Изучите основы алгебры",
+      "category": 1,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 50,
+      "difficulty_level": "beginner",
+      "language": "ru",
+      "duration_minutes": 1800,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "5000.00",
+      "currency": "KGS",
+      "status": "published",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 2,
+    "fields": {
+      "title": "Геометрия для начинающих",
+      "slug": "geometry-basics",
+      "description": "<p>Базовый курс геометрии</p>",
+      "excerpt": "Изучите основы геометрии",
+      "category": 1,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 50,
+      "difficulty_level": "beginner",
+      "language": "ru",
+      "duration_minutes": 1800,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "5000.00",
+      "currency": "KGS",
+      "status": "published",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 3,
+    "fields": {
+      "title": "English for Beginners",
+      "slug": "english-basics",
+      "description": "<p>Basic English course</p>",
+      "excerpt": "Learn basic English",
+      "category": 2,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 30,
+      "difficulty_level": "beginner",
+      "language": "en",
+      "duration_minutes": 2700,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "6000.00",
+      "currency": "KGS",
+      "status": "published",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 4,
+    "fields": {
+      "title": "Business English",
+      "slug": "business-english",
+      "description": "<p>Advanced business English course</p>",
+      "excerpt": "Master business English",
+      "category": 2,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 20,
+      "difficulty_level": "advanced",
+      "language": "en",
+      "duration_minutes": 3600,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "8000.00",
+      "currency": "KGS",
+      "status": "published",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 5,
+    "fields": {
+      "title": "Python для начинающих",
+      "slug": "python-basics",
+      "description": "<p>Базовый курс Python</p>",
+      "excerpt": "Изучите основы Python",
+      "category": 3,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 40,
+      "difficulty_level": "beginner",
+      "language": "ru",
+      "duration_minutes": 2400,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "7000.00",
+      "currency": "KGS",
+      "status": "published",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  },
+  {
+    "model": "courses.module",
+    "pk": 1,
+    "fields": {
+      "course": 1,
+      "title": "Введение в алгебру",
+      "description": "Базовые понятия алгебры",
+      "order": 1
+    }
+  },
+  {
+    "model": "courses.module",
+    "pk": 2,
+    "fields": {
+      "course": 1,
+      "title": "Линейные уравнения",
+      "description": "Решение линейных уравнений",
+      "order": 2
+    }
+  },
+  {
+    "model": "courses.module",
+    "pk": 3,
+    "fields": {
+      "course": 2,
+      "title": "Введение в геометрию",
+      "description": "Базовые понятия геометрии",
+      "order": 1
+    }
+  },
+  {
+    "model": "courses.module",
+    "pk": 4,
+    "fields": {
+      "course": 3,
+      "title": "Alphabet and Pronunciation",
+      "description": "Learning English alphabet and basic pronunciation",
+      "order": 1
+    }
+  },
+  {
+    "model": "courses.lesson",
+    "pk": 1,
+    "fields": {
+      "module": 1,
+      "title": "Что такое алгебра?",
+      "content_type": "text",
+      "content": "<p>Введение в алгебру</p>",
+      "order": 1,
+      "duration_minutes": 30
+    }
+  },
+  {
+    "model": "courses.lesson",
+    "pk": 2,
+    "fields": {
+      "module": 1,
+      "title": "Числовые выражения",
+      "content_type": "text",
+      "content": "<p>Работа с числовыми выражениями</p>",
+      "order": 2,
+      "duration_minutes": 45
+    }
+  },
+  {
+    "model": "courses.lesson",
+    "pk": 3,
+    "fields": {
+      "module": 4,
+      "title": "English Alphabet",
+      "content_type": "text",
+      "content": "<p>Learning the English alphabet</p>",
+      "order": 1,
+      "duration_minutes": 30
+    }
+  },
+  {
+    "model": "courses.promocode",
+    "pk": 1,
+    "fields": {
+      "code": "WELCOME2025",
+      "discount_percent": 20,
+      "valid_from": "2025-01-19T00:00:00Z",
+      "valid_until": "2025-12-31T23:59:59Z",
+      "max_uses": 100,
+      "used_count": 0,
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z"
+    }
+  }
+]

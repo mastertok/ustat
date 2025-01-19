@@ -1,0 +1,94 @@
+[
+  {
+    "model": "courses.category",
+    "pk": 1,
+    "fields": {
+      "name": "Математика",
+      "slug": "mathematics",
+      "description": "Курсы по математике всех уровней",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.category",
+    "pk": 2,
+    "fields": {
+      "name": "Английский язык",
+      "slug": "english",
+      "description": "Курсы английского языка",
+      "parent": null
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 1,
+    "fields": {
+      "title": "Алгебра для начинающих",
+      "slug": "algebra-basics",
+      "description": "<p>Базовый курс алгебры</p>",
+      "excerpt": "Изучите основы алгебры",
+      "category": 1,
+      "teacher": null,
+      "producer": null,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 0,
+      "difficulty_level": "beginner",
+      "language": "ru",
+      "duration_minutes": 30,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "5000.00",
+      "currency": "KGS",
+      "discount_price": null,
+      "sales_count": 0,
+      "average_rating": "0.00",
+      "reviews_count": 0,
+      "status": "published",
+      "seo_title": "",
+      "seo_description": "",
+      "seo_keywords": "",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  },
+  {
+    "model": "courses.course",
+    "pk": 2,
+    "fields": {
+      "title": "English for Beginners",
+      "slug": "english-basics",
+      "description": "<p>Basic English course</p>",
+      "excerpt": "Learn basic English",
+      "category": 2,
+      "teacher": null,
+      "producer": null,
+      "cover_image": "",
+      "video_intro": null,
+      "max_students": 0,
+      "difficulty_level": "beginner",
+      "language": "en",
+      "duration_minutes": 45,
+      "enable_qa": true,
+      "enable_announcements": true,
+      "enable_reviews": true,
+      "course_type": "paid",
+      "price": "6000.00",
+      "currency": "KGS",
+      "discount_price": null,
+      "sales_count": 0,
+      "average_rating": "0.00",
+      "reviews_count": 0,
+      "status": "published",
+      "seo_title": "",
+      "seo_description": "",
+      "seo_keywords": "",
+      "created_at": "2025-01-19T08:00:00Z",
+      "updated_at": "2025-01-19T08:00:00Z",
+      "published_at": "2025-01-19T08:00:00Z"
+    }
+  }
+]
