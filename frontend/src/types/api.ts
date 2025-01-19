@@ -31,49 +31,93 @@ export interface ProducerProfile {
   reviews_count: number;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+export interface Instructor {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export interface Review {
+  id: number;
+  user: {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  course: {
+    id: number;
+    title: string;
+  };
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export interface Lesson {
+  id: number;
+  title: string;
+  description: string;
+  is_free: boolean;
+  duration: string;
+  order: number;
+}
+
+export interface Module {
+  id: number;
+  title: string;
+  description: string;
+  order: number;
+  lessons: Lesson[];
+  lessons_count: number;
+}
+
 export interface Course {
   id: number;
   title: string;
   slug: string;
   description: string;
-  teacher: TeacherProfile;
-  category: Category;
-  tags: Tag[];
-  max_students: number;
-  enrolled_students: number;
-  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  image: string;
+  preview_video: string;
+  price: number;
+  level: string;
   language: string;
-  course_type: 'free' | 'paid';
-  price?: number;
-  status: 'draft' | 'published' | 'archived';
-  rating: number;
-  reviews_count: number;
+  duration: string;
+  category: Category;
+  instructor: {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  modules: Module[];
+  reviews: Review[];
+  is_favorite: boolean;
+  is_enrolled: boolean;
+  average_rating: number;
   created_at: string;
   updated_at: string;
 }
 
-export interface Module {
-  id: number;
-  course: Course;
-  title: string;
-  description: string;
-  order: number;
-}
-
-export interface Lesson {
-  id: number;
-  module: Module;
-  title: string;
-  content: string;
-  order: number;
-  duration: number;
-}
-
-export interface Category {
+export interface Partner {
   id: number;
   name: string;
-  slug: string;
-  description: string;
+  logo: string;
+  website: string;
 }
 
 export interface Tag {
@@ -115,16 +159,6 @@ export interface WorkExperience {
   description: string;
   start_date: string;
   end_date?: string;
-}
-
-export interface Review {
-  id: number;
-  course: Course;
-  user: User;
-  rating: number;
-  comment: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface Reply {

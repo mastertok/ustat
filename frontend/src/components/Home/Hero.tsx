@@ -1,179 +1,198 @@
-import { Box, Button, Container, Typography, useTheme, useMediaQuery } from '@mui/material';
-import { School, ArrowForward } from '@mui/icons-material';
+import { Box, Container, Stack, Typography, Button } from '@mui/material';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import { useEffect, useState } from 'react';
 
 const Hero = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const phrases = [
+    'Получите качественное образование и развивайте свои навыки',
+    'Станьте востребованным специалистом в своей области',
+    'Учитесь у практикующих экспертов онлайн',
+    'Развивайте свои профессиональные навыки',
+  ];
+
+  const headerPhrases = [
+    'Станьте экспертом',
+    'Учитесь у лучших',
+    'Делитесь знаниями',
+    'Создавайте курсы'
+  ];
+
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentHeaderIndex, setCurrentHeaderIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+
+  const handleVideoLoad = () => {
+    setIsVideoLoaded(true);
+  };
+
+  // Анимация для подзаголовка
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const currentPhrase = phrases[currentPhraseIndex];
+
+    if (isDeleting) {
+      if (displayText === '') {
+        setIsDeleting(false);
+        setCurrentPhraseIndex((prev) => (prev + 1) % phrases.length);
+      } else {
+        timeout = setTimeout(() => {
+          setDisplayText(displayText.slice(0, -1));
+        }, 50);
+      }
+    } else {
+      if (displayText === currentPhrase) {
+        timeout = setTimeout(() => {
+          setIsDeleting(true);
+        }, 2000);
+      } else {
+        timeout = setTimeout(() => {
+          setDisplayText(currentPhrase.slice(0, displayText.length + 1));
+        }, 100);
+      }
+    }
+
+    return () => clearTimeout(timeout);
+  }, [displayText, currentPhraseIndex, isDeleting]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentHeaderIndex((prev) => (prev + 1) % headerPhrases.length);
+        setIsVisible(true);
+      }, 1000);
+    }, 8000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
         position: 'relative',
-        pt: { xs: 4, sm: 6, md: 8 },
-        pb: { xs: 8, sm: 12, md: 16 },
+        height: '50vh',
+        display: 'flex',
+        alignItems: 'center',
         overflow: 'hidden',
+        bgcolor: '#f1f1f1',
+        borderRadius: '20px',
+        mx: 2,
+        my: 2,
       }}
     >
-      {/* Декоративные элементы */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: { xs: -100, md: -150 },
-          right: { xs: -100, md: -150 },
-          width: { xs: 200, md: 300 },
-          height: { xs: 200, md: 300 },
-          borderRadius: '50%',
-          background: 'linear-gradient(45deg, #2196f3 30%, #21cbf3 90%)',
-          opacity: 0.1,
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: { xs: -50, md: -100 },
-          left: { xs: -50, md: -100 },
-          width: { xs: 150, md: 200 },
-          height: { xs: 150, md: 200 },
-          borderRadius: '50%',
-          background: 'linear-gradient(45deg, #ff4081 30%, #ff9100 90%)',
-          opacity: 0.1,
-        }}
-      />
-
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '100vw',
-          px: { xs: 2, sm: 4, md: 6, lg: 8 },
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: 'center',
-            gap: { xs: 4, md: 8 },
-            maxWidth: '100%',
-          }}
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={4}
+          alignItems="center"
+          justifyContent="space-between"
         >
-          {/* Левая колонка с текстом */}
+          {/* Левая часть с текстом */}
+          <Stack spacing={3} maxWidth="600px" position="relative" zIndex={1}>
+            <Typography
+              variant="h1"
+              sx={{
+                color: '#DB4337',
+                fontWeight: 700,
+                fontSize: { xs: '2.5rem', md: '3.5rem' },
+                lineHeight: 1.2,
+                opacity: isVisible ? 1 : 0,
+                transition: 'opacity 1s ease-in-out',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                letterSpacing: '0.5px',
+              }}
+            >
+              {headerPhrases[currentHeaderIndex]}
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                color: '#DB4337',
+                fontWeight: 500,
+                height: '80px',
+                display: 'flex',
+                alignItems: 'center',
+                letterSpacing: '0.3px',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                borderRadius: '10px',
+                px: 2,
+                '&::after': {
+                  content: '"|"',
+                  marginLeft: '2px',
+                  animation: 'blink 1s step-end infinite',
+                  color: '#DB4337',
+                },
+                '@keyframes blink': {
+                  'from, to': { opacity: 1 },
+                  '50%': { opacity: 0 },
+                },
+              }}
+            >
+              {displayText}
+            </Typography>
+          </Stack>
+
+          {/* Правая часть с блогом */}
           <Box
             sx={{
-              flex: 1,
-              textAlign: { xs: 'center', md: 'left' },
-              maxWidth: { xs: '100%', md: '60%' },
+              position: 'relative',
+              zIndex: 1,
+              background: 'linear-gradient(45deg, rgba(219,67,55,0.95), rgba(183,28,28,0.95))',
+              borderRadius: 2,
+              p: 3,
+              maxWidth: '400px',
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
             }}
           >
-            <Typography
-              component="h1"
-              variant={isMobile ? 'h3' : 'h2'}
-              sx={{
-                fontWeight: 'bold',
-                mb: { xs: 2, md: 3 },
-                fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
-                lineHeight: { xs: 1.2, md: 1.1 },
-              }}
-            >
-              Образование будущего уже сегодня
-            </Typography>
-
-            <Typography
-              variant={isMobile ? 'body1' : 'h6'}
-              color="text.secondary"
-              sx={{
-                mb: { xs: 3, md: 4 },
-                fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
-                maxWidth: { sm: '80%', md: '100%' },
-                mx: { xs: 'auto', md: 0 },
-              }}
-            >
-              Получайте качественные знания от лучших преподавателей в удобном для вас формате.
-              Развивайтесь и достигайте новых высот вместе с нами!
-            </Typography>
-
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: 2,
-                justifyContent: { xs: 'center', md: 'flex-start' },
-              }}
-            >
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <PlayCircleOutlineIcon sx={{ color: 'white', fontSize: '2rem' }} />
+                <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600, letterSpacing: '0.3px' }}>
+                  Монетизируй свою экспертность
+                </Typography>
+              </Stack>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: '#ffffff',
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.2px',
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
+                }}
+              >
+                Создавайте курсы, делитесь знаниями и получайте доход
+              </Typography>
               <Button
                 variant="contained"
-                size={isMobile ? 'medium' : 'large'}
-                endIcon={<ArrowForward />}
                 sx={{
-                  px: { xs: 3, md: 4 },
-                  py: { xs: 1, md: 1.5 },
-                  borderRadius: 2,
-                }}
-              >
-                Начать обучение
-              </Button>
-              <Button
-                variant="outlined"
-                size={isMobile ? 'medium' : 'large'}
-                sx={{
-                  px: { xs: 3, md: 4 },
-                  py: { xs: 1, md: 1.5 },
-                  borderRadius: 2,
-                }}
-              >
-                Узнать больше
-              </Button>
-            </Box>
-          </Box>
-
-          {/* Правая колонка с иллюстрацией */}
-          {!isTablet && (
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                position: 'relative',
-              }}
-            >
-              <Box
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  minHeight: 400,
-                  position: 'relative',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '80%',
-                    height: '80%',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(45deg, #e3f2fd 30%, #bbdefb 90%)',
-                    opacity: 0.5,
+                  color: '#1a237e',
+                  background: 'linear-gradient(45deg, #ffffff, #f5f5f5)',
+                  backgroundSize: '200% 200%',
+                  animation: 'gradient-animation 3s linear infinite',
+                  fontWeight: 600,
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  border: 'none',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #f5f5f5, #ffffff)',
+                    backgroundSize: '200% 200%',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                   },
                 }}
               >
-                <School
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: '15rem',
-                    color: 'primary.main',
-                    opacity: 0.8,
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
-        </Box>
-      </Box>
+                Присоединяйся
+              </Button>
+            </Stack>
+          </Box>
+        </Stack>
+      </Container>
     </Box>
   );
 };

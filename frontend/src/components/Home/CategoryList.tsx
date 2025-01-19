@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Typography, Container, Grid, Skeleton } from '@mui/material';
+import { Box, Card, CardContent, Typography, Grid, Skeleton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
@@ -60,7 +60,12 @@ const CategoryList = () => {
           >
             {[1, 2, 3, 4].map((item) => (
               <Grid item xs={6} sm={3} key={item}>
-                <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 2 }} />
+                <Skeleton 
+                  variant="rectangular" 
+                  height={140} 
+                  sx={{ borderRadius: 2 }} 
+                  data-testid="skeleton"
+                />
               </Grid>
             ))}
           </Grid>
@@ -108,7 +113,7 @@ const CategoryList = () => {
               >
                 <Card
                   component={RouterLink}
-                  to={`/courses?category=${category.slug}`}
+                  to={`/courses?category=${category.id}`}
                   sx={{
                     height: '100%',
                     display: 'flex',

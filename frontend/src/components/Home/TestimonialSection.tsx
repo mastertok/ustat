@@ -8,17 +8,22 @@ import { Review } from '../../types/api';
 const TestimonialSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  const { data: reviews, isLoading } = useQuery<Review[]>({
+  const { data: reviews, isLoading, error } = useQuery<Review[]>({
     queryKey: ['testimonials'],
     queryFn: async () => {
-      const response = await api.get('/reviews/reviews/', {
-        params: {
-          rating__gte: 4, // Только хорошие отзывы
-          ordering: '-created_at', // Сначала новые
-          limit: 10,
-        },
-      });
-      return response.data.results;
+      try {
+        const response = await api.get('/api/v1/courses/reviews/', {
+          params: {
+            rating__gte: 4,
+            ordering: '-created_at',
+            limit: 10,
+          },
+        });
+        return response.data.results;
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+        throw error;
+      }
     },
   });
 

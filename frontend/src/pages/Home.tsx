@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { Box, Container, Grid, Typography } from '@mui/material';
+import { Box, Container, Grid, Typography, Skeleton } from '@mui/material';
 import Hero from '../components/Home/Hero';
+import PopularCourses from '../components/Home/PopularCourses';
 import CategoryList from '../components/Home/CategoryList';
-import TestimonialSection from '../components/Home/TestimonialSection';
 import FeatureSection from '../components/Home/FeatureSection';
-import CourseCard from '../components/Course/CourseCard';
+import TestimonialSection from '../components/Home/TestimonialSection';
+import PartnersSection from '../components/Home/PartnersSection';
+import { CourseCard } from '../components/Course/CourseCard';
 import { api } from '../services/api';
 import { Course } from '../types/api';
 
@@ -12,22 +14,17 @@ const Home = () => {
   const { data: popularCourses, isLoading } = useQuery<Course[]>({
     queryKey: ['popularCourses'],
     queryFn: async () => {
-      const response = await api.get('/courses/courses/', {
-        params: {
-          ordering: '-rating',
-          limit: 6,
-        },
-      });
-      return response.data.results;
+      const response = await api.get('/api/v1/courses/courses/popular/');
+      return response.data;
     },
   });
 
   return (
     <Box>
+      {/* 1. Баннер */}
       <Hero />
       
-      <CategoryList />
-
+      {/* 2. Популярные курсы */}
       <Box sx={{ py: 8 }}>
         <Container>
           <Typography
@@ -41,19 +38,37 @@ const Home = () => {
           </Typography>
 
           <Grid container spacing={4}>
-            {!isLoading &&
-              popularCourses?.map((course) => (
-                <Grid item key={course.id} xs={12} sm={6} md={4}>
-                  <CourseCard course={course} />
+            {isLoading ? (
+              // Показываем скелетон во время загрузки
+              [...Array(6)].map((_, index) => (
+                <Grid item key={index} xs={12} sm={6} md={4}>
+                  <Skeleton 
+                    variant="rectangular" 
+                    height={300} 
+                    sx={{ borderRadius: 2 }} 
+                  />
                 </Grid>
-              ))}
+              ))
+            ) : popularCourses?.map((course) => (
+              <Grid item key={course.id} xs={12} sm={6} md={4}>
+                <CourseCard course={course} />
+              </Grid>
+            ))}
           </Grid>
         </Container>
       </Box>
-
+      
+      {/* 3. Категории курсов */}
+      <CategoryList />
+      
+      {/* 4. Почему выбирают Устат */}
+      <FeatureSection />
+      
+      {/* 5. Отзывы студентов */}
       <TestimonialSection />
       
-      <FeatureSection />
+      {/* 6. Партнеры */}
+      <PartnersSection />
     </Box>
   );
 };
