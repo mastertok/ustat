@@ -35,7 +35,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_filters',
     'django_prometheus',
-    'ckeditor',
+    'django_ckeditor_5',
     'celery',
     
     # Наши приложения
@@ -160,15 +160,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# CKEditor settings
-CKEDITOR_UPLOAD_PATH = 'uploads/'
-CKEDITOR_CONFIGS = {
+# CKEditor 5 settings
+CKEDITOR_5_CONFIGS = {
     'default': {
-        'toolbar': 'full',
-        'height': 300,
+        'toolbar': ['heading', '|', 'bold', 'italic', 'link',
+                   'bulletedList', 'numberedList', 'blockQuote', 'imageUpload', ],
+        'height': '300px',
         'width': '100%',
     },
 }
+
+CKEDITOR_5_UPLOAD_PATH = 'uploads/'
+CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
 # Пытаемся импортировать локальные настройки
 try:

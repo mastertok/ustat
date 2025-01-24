@@ -1,13 +1,14 @@
 from django.db import models
-from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
-from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.conf import settings
+from django_ckeditor_5.fields import CKEditor5Field
 from django.core.exceptions import ValidationError
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from django.urls import reverse
 from django.utils.text import slugify
 from django.core.cache import cache
-from ckeditor.fields import RichTextField
 from accounts.models import User
 from core.models import BaseModel
 
@@ -231,7 +232,7 @@ class Course(BaseModel):
     # Основная информация
     title = models.CharField('Название', max_length=200, db_index=True)
     slug = models.SlugField('URL', unique=True, db_index=True)
-    description = RichTextField('Описание')
+    description = CKEditor5Field('Описание')
     excerpt = models.TextField('Краткое описание', blank=True)
     
     # Категоризация
@@ -529,7 +530,7 @@ class Lesson(BaseModel):
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons')
     title = models.CharField('Название', max_length=200)
     content_type = models.CharField('Тип контента', max_length=20, choices=CONTENT_TYPES)
-    content = RichTextField('Содержание')
+    content = CKEditor5Field('Содержание')
     video_url = models.URLField('URL видео', null=True, blank=True, validators=[validate_video_url])
     file = models.FileField(
         'Файл',
@@ -584,7 +585,7 @@ class Review(BaseModel):
 class Announcement(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='announcements')
     title = models.CharField('Заголовок', max_length=200)
-    content = RichTextField('Содержание')
+    content = CKEditor5Field('Содержание')
     created_at = models.DateTimeField('Дата создания', default=timezone.now)
     updated_at = models.DateTimeField('Дата обновления', default=timezone.now)
 
