@@ -15,7 +15,7 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-            'specializations', 'social_links'
+            'social_links', 'language'
         ]
         widgets = {
             'social_links': forms.Textarea(attrs={'placeholder': '{"vk": "https://vk.com/...", "telegram": "@username"}'}),
@@ -28,7 +28,7 @@ class ProfileForm(forms.ModelForm):
             self.fields['last_name'].initial = self.instance.user.last_name
             self.fields['email'].initial = self.instance.user.email
             self.fields['phone'].initial = self.instance.user.phone
-            self.fields['bio'].initial = self.instance.user.bio
+            self.fields['bio'].initial = self.instance.bio
             
     def save(self, commit=True):
         profile = super().save(commit=False)
@@ -39,9 +39,9 @@ class ProfileForm(forms.ModelForm):
             user.last_name = self.cleaned_data['last_name']
             user.email = self.cleaned_data['email']
             user.phone = self.cleaned_data['phone']
-            user.bio = self.cleaned_data['bio']
             if self.cleaned_data['avatar']:
-                user.avatar = self.cleaned_data['avatar']
+                profile.avatar = self.cleaned_data['avatar']
+            profile.bio = self.cleaned_data['bio']
             user.save()
             profile.save()
             self.save_m2m()  # Сохраняем many-to-many поля
@@ -50,7 +50,7 @@ class ProfileForm(forms.ModelForm):
 class EducationForm(forms.ModelForm):
     class Meta:
         model = Education
-        exclude = ['profile']
+        exclude = ['user']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),
@@ -59,7 +59,7 @@ class EducationForm(forms.ModelForm):
 class WorkExperienceForm(forms.ModelForm):
     class Meta:
         model = WorkExperience
-        exclude = ['profile']
+        exclude = ['user']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),
@@ -68,7 +68,45 @@ class WorkExperienceForm(forms.ModelForm):
 class AchievementForm(forms.ModelForm):
     class Meta:
         model = Achievement
-        exclude = ['profile']
+        exclude = ['user']
         widgets = {
-            'date_received': forms.DateInput(attrs={'type': 'date'}),
+            'date': forms.DateInput(attrs={'type': 'date'}),
         }
+
+class ProfileSettingsForm(forms.ModelForm):
+    email = forms.EmailField(label='Email')
+    phone = forms.CharField(max_length=15, required=False, label='Телефон')
+    password1 = forms.CharField(widget=forms.PasswordInput, required=False, label='Новый пароль')
+    password2 = forms.CharField(widget=forms.PasswordInput, required=False, label='Подтверждение пароля')
+
+    class Meta:
+        model = User
+        fields = ['email', 'phone', 'password1', 'password2']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            self.fields['email'].initial = self.instance.email
+            self.fields['phone'].initial = self.instance.phone
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError('Пароли не совпадают')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if commit:
+            user.email = self.cleaned_data['email']
+            user.phone = self.cleaned_data['phone']
+            
+            if self.cleaned_data['password1']:
+                user.set_password(self.cleaned_data['password1'])
+            
+            user.save()
+        return user

@@ -9,7 +9,7 @@ from django.utils.text import slugify
 from django.core.cache import cache
 from ckeditor.fields import RichTextField
 from accounts.models import User
-from core.models import AutoRegisterAdmin
+from core.models import BaseModel
 
 def validate_video_url(value):
     """Валидация URL видео (YouTube, Vimeo)"""
@@ -21,7 +21,7 @@ def validate_image_size(value):
     if value.size > 2 * 1024 * 1024:
         raise ValidationError('Максимальный размер изображения 2MB')
 
-class Category(AutoRegisterAdmin, models.Model):
+class Category(BaseModel):
     name = models.CharField('Название', max_length=100, db_index=True)
     slug = models.SlugField('URL', unique=True, db_index=True)
     description = models.TextField('Описание', blank=True)
@@ -117,7 +117,7 @@ class Category(AutoRegisterAdmin, models.Model):
             status='published'
         ).order_by('-students_count')[:limit]
 
-class Tag(AutoRegisterAdmin, models.Model):
+class Tag(BaseModel):
     name = models.CharField('Название', max_length=50)
     slug = models.SlugField('URL', unique=True)
 
@@ -128,44 +128,75 @@ class Tag(AutoRegisterAdmin, models.Model):
     def __str__(self):
         return self.name
 
-class CourseUserRole(AutoRegisterAdmin, models.Model):
-    """
-    Промежуточная модель для связи пользователей с курсами и их ролями
-    """
+class CourseUserRole(models.Model):
+    """Промежуточная модель для связи пользователей с курсами и их ролями"""
+    
     ROLE_CHOICES = [
         ('teacher', 'Преподаватель'),
         ('producer', 'Продюсер'),
-        ('assistant', 'Ассистент'),  # Добавляем возможность для будущего расширения ролей
+        ('assistant', 'Ассистент'),
     ]
+
+    DEFAULT_PERMISSIONS = {
+        'teacher': {
+            'can_edit_content': True,
+            'can_manage_students': True,
+            'can_view_analytics': True,
+        },
+        'producer': {
+            'can_edit_content': True,
+            'can_manage_students': True,
+            'can_view_analytics': True,
+            'can_manage_teachers': True,
+            'can_manage_pricing': True,
+            'can_manage_marketing': True,
+        },
+        'assistant': {
+            'can_edit_content': False,
+            'can_manage_students': True,
+            'can_view_analytics': False,
+        }
+    }
 
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='user_roles')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_roles')
     role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES)
-    
-    # Дополнительные поля для разных ролей
     permissions = models.JSONField('Права доступа', default=dict, blank=True)
     is_primary = models.BooleanField('Основная роль', default=False)
     added_at = models.DateTimeField('Дата добавления', auto_now_add=True)
-    
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='added_course_roles')
+
     class Meta:
         verbose_name = 'Роль пользователя в курсе'
         verbose_name_plural = 'Роли пользователей в курсах'
-        unique_together = ['course', 'user', 'role']  # Один пользователь может иметь только одну роль определенного типа
-        
+        unique_together = ['course', 'user', 'role']
+        indexes = [
+            models.Index(fields=['course', 'role']),
+            models.Index(fields=['user', 'role']),
+        ]
+
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.get_role_display()} в курсе {self.course.title}"
-    
+        return f'{self.user} - {self.get_role_display()} в курсе {self.course}'
+
     def save(self, *args, **kwargs):
-        # Если это основная роль, убеждаемся что нет других основных ролей того же типа
+        # Устанавливаем права доступа по умолчанию при создании
+        if not self.permissions:
+            self.permissions = self.DEFAULT_PERMISSIONS.get(self.role, {})
+        
+        # Если это основная роль, убираем этот статус у других ролей пользователя в этом курсе
         if self.is_primary:
             CourseUserRole.objects.filter(
                 course=self.course,
-                role=self.role,
-                is_primary=True
+                user=self.user,
             ).exclude(id=self.id).update(is_primary=False)
+        
         super().save(*args, **kwargs)
 
-class Course(AutoRegisterAdmin, models.Model):
+    def has_permission(self, permission):
+        """Проверяет наличие конкретного разрешения у роли"""
+        return self.permissions.get(permission, False)
+
+class Course(BaseModel):
     DIFFICULTY_CHOICES = [
         ('beginner', 'Начальный'),
         ('intermediate', 'Средний'),
@@ -324,12 +355,10 @@ class Course(AutoRegisterAdmin, models.Model):
         verbose_name_plural = 'Курсы'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['title']),
-            models.Index(fields=['slug']),
-            models.Index(fields=['status', '-created_at']),
-            models.Index(fields=['-average_rating']),
-            models.Index(fields=['-students_count']),
-            models.Index(fields=['type', 'status']),
+            models.Index(fields=['status', 'type', 'language']),
+            models.Index(fields=['-average_rating', '-students_count']),
+            models.Index(fields=['price', 'category']),
+            models.Index(fields=['published_at', 'status']),
         ]
 
     def __str__(self):
@@ -385,6 +414,49 @@ class Course(AutoRegisterAdmin, models.Model):
             
         return teachers
 
+    def get_primary_producer(self):
+        """Возвращает основного продюсера курса"""
+        producer_role = self.user_roles.filter(
+            role='producer',
+            is_primary=True
+        ).select_related('user').first()
+        return producer_role.user if producer_role else None
+
+    def get_producers(self):
+        """Возвращает всех продюсеров курса"""
+        return User.objects.filter(
+            course_roles__course=self,
+            course_roles__role='producer'
+        ).distinct()
+
+    def add_producer(self, user, is_primary=False, added_by=None):
+        """Добавляет продюсера к курсу"""
+        if not user.role == 'producer':
+            raise ValidationError('Пользователь должен иметь роль продюсера')
+        
+        role, created = CourseUserRole.objects.get_or_create(
+            course=self,
+            user=user,
+            role='producer',
+            defaults={
+                'is_primary': is_primary,
+                'added_by': added_by
+            }
+        )
+        
+        if not created and role.is_primary != is_primary:
+            role.is_primary = is_primary
+            role.save()
+        
+        return role
+
+    def remove_producer(self, user):
+        """Удаляет продюсера из курса"""
+        return self.user_roles.filter(
+            user=user,
+            role='producer'
+        ).delete()
+
     def get_total_lessons(self):
         """Возвращает общее количество уроков"""
         if self.total_lessons > 0:
@@ -432,7 +504,7 @@ class Course(AutoRegisterAdmin, models.Model):
             self.get_primary_teacher()  # есть основной преподаватель
         ])
 
-class Module(AutoRegisterAdmin, models.Model):
+class Module(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
     title = models.CharField('Название', max_length=200)
     description = models.TextField('Описание', blank=True)
@@ -446,7 +518,7 @@ class Module(AutoRegisterAdmin, models.Model):
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
-class Lesson(AutoRegisterAdmin, models.Model):
+class Lesson(BaseModel):
     CONTENT_TYPES = [
         ('video', 'Видео'),
         ('text', 'Текст'),
@@ -483,7 +555,7 @@ class Lesson(AutoRegisterAdmin, models.Model):
         if self.content_type == 'presentation' and not self.file:
             raise ValidationError('Для презентации необходимо загрузить файл')
 
-class Review(AutoRegisterAdmin, models.Model):
+class Review(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_reviews')
     rating = models.PositiveSmallIntegerField(
@@ -509,7 +581,7 @@ class Review(AutoRegisterAdmin, models.Model):
         super().save(*args, **kwargs)
         self.course.update_rating_stats()
 
-class Announcement(AutoRegisterAdmin, models.Model):
+class Announcement(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='announcements')
     title = models.CharField('Заголовок', max_length=200)
     content = RichTextField('Содержание')
@@ -530,7 +602,7 @@ class Announcement(AutoRegisterAdmin, models.Model):
         self.updated_at = timezone.now()
         super().save(*args, **kwargs)
 
-class Enrollment(AutoRegisterAdmin, models.Model):
+class Enrollment(BaseModel):
     STATUS_CHOICES = [
         ('active', 'Активный'),
         ('completed', 'Завершен'),
@@ -561,7 +633,7 @@ class Enrollment(AutoRegisterAdmin, models.Model):
             self.completed_at = timezone.now()
         super().save(*args, **kwargs)
 
-class Promocode(AutoRegisterAdmin, models.Model):
+class Promocode(BaseModel):
     code = models.CharField('Код', max_length=50, unique=True)
     discount_percent = models.PositiveIntegerField(
         'Процент скидки',
@@ -597,7 +669,7 @@ class Promocode(AutoRegisterAdmin, models.Model):
         self.updated_at = timezone.now()
         super().save(*args, **kwargs)
 
-class Promotion(AutoRegisterAdmin, models.Model):
+class Promotion(BaseModel):
     title = models.CharField('Название', max_length=200)
     description = models.TextField('Описание')
     discount_percent = models.PositiveIntegerField('Процент скидки')
@@ -614,7 +686,7 @@ class Promotion(AutoRegisterAdmin, models.Model):
     def __str__(self):
         return self.title
 
-class CourseAnalytics(models.Model):
+class CourseAnalytics(BaseModel):
     """
     Модель для хранения агрегированной аналитики курса
     """
@@ -641,7 +713,7 @@ class CourseAnalytics(models.Model):
     def __str__(self):
         return f'Аналитика курса {self.course.title}'
 
-class AnalyticsLog(models.Model):
+class AnalyticsLog(BaseModel):
     """
     Модель для хранения детальных логов аналитики
     """
@@ -670,7 +742,7 @@ class AnalyticsLog(models.Model):
     def __str__(self):
         return f'{self.get_event_type_display()} - {self.course.title} - {self.timestamp}'
 
-class TrafficSource(AutoRegisterAdmin, models.Model):
+class TrafficSource(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     source = models.CharField('Источник', max_length=100)  # organic, facebook, instagram и т.д.
     utm_campaign = models.CharField('UTM кампания', max_length=100, blank=True)
@@ -686,7 +758,7 @@ class TrafficSource(AutoRegisterAdmin, models.Model):
     def __str__(self):
         return f"{self.source} - {self.course.title}"
 
-class EmailCampaign(AutoRegisterAdmin, models.Model):
+class EmailCampaign(BaseModel):
     title = models.CharField('Название', max_length=200)
     subject = models.CharField('Тема письма', max_length=200)
     content = models.TextField('Содержание')
@@ -705,7 +777,7 @@ class EmailCampaign(AutoRegisterAdmin, models.Model):
     def __str__(self):
         return self.title
 
-class Specialization(AutoRegisterAdmin, models.Model):
+class Specialization(BaseModel):
     name = models.CharField('Название', max_length=100, db_index=True)
     description = models.TextField('Описание', blank=True)
     slug = models.SlugField('URL', unique=True, db_index=True)

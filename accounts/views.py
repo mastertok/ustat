@@ -5,13 +5,13 @@ from django.views.generic import DetailView, UpdateView, CreateView, DeleteView
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.db.models import Q, Count, Avg
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.core.exceptions import PermissionDenied
 
-from .models import Profile, Education, WorkExperience, Achievement
+from .models import Profile, Education, WorkExperience, Achievement, User
 from .forms import (
     ProfileForm, EducationForm,
-    WorkExperienceForm, AchievementForm
+    WorkExperienceForm, AchievementForm, ProfileSettingsForm
 )
 from courses.models import Course
 
@@ -137,3 +137,50 @@ def delete_achievement(request, pk):
     achievement = get_object_or_404(Achievement, pk=pk, profile=request.user.profile)
     achievement.delete()
     return JsonResponse({'status': 'success'})
+
+def teacher_profile(request, custom_url):
+    """Отображает профиль преподавателя"""
+    profile = get_object_or_404(Profile, custom_url=custom_url, user__role='teacher')
+    context = {
+        'profile': profile,
+        'courses_count': Course.objects.filter(user_roles__user=profile.user, user_roles__role='teacher').count()
+    }
+    return render(request, 'accounts/teacher_profile.html', context)
+
+def teacher_courses(request, custom_url):
+    """Отображает список курсов преподавателя"""
+    profile = get_object_or_404(Profile, custom_url=custom_url, user__role='teacher')
+    courses = Course.objects.filter(
+        user_roles__user=profile.user,
+        user_roles__role='teacher'
+    ).order_by('-created_at')
+    
+    context = {
+        'profile': profile,
+        'courses': courses
+    }
+    return render(request, 'accounts/teacher_courses.html', context)
+
+@login_required
+def profile_settings(request):
+    """Настройки профиля пользователя"""
+    profile = get_object_or_404(Profile, user=request.user)
+    
+    if request.method == 'POST':
+        # Обработка формы обновления профиля
+        form = ProfileSettingsForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            # Проверяем custom_url если пользователь - преподаватель
+            if request.user.role == 'teacher' and 'custom_url' in form.changed_data:
+                custom_url = form.cleaned_data['custom_url']
+                if Profile.objects.filter(custom_url=custom_url).exclude(id=profile.id).exists():
+                    form.add_error('custom_url', 'Этот URL уже занят')
+                    return render(request, 'accounts/profile_settings.html', {'form': form})
+            
+            form.save()
+            messages.success(request, 'Профиль успешно обновлен')
+            return redirect('profile_settings')
+    else:
+        form = ProfileSettingsForm(instance=profile)
+    
+    return render(request, 'accounts/profile_settings.html', {'form': form})

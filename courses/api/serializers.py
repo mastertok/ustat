@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from courses.models import Course, Module, Lesson, Announcement, Category, Tag
-from accounts.api.serializers import TeacherProfileSerializer
+from accounts.api.serializers import ProfileSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,7 +30,7 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CourseSerializer(serializers.ModelSerializer):
-    teacher = TeacherProfileSerializer(read_only=True)
+    teacher = ProfileSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     modules = ModuleSerializer(many=True, read_only=True)
@@ -42,7 +42,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class CourseListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка курсов с меньшим количеством данных"""
-    teacher = TeacherProfileSerializer(read_only=True)
+    teacher = ProfileSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
 

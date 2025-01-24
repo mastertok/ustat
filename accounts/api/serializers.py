@@ -1,45 +1,38 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from accounts.models import Profile, Achievement, Education, WorkExperience, Specialization
+from accounts.models import Profile, Education, WorkExperience, Achievement
 
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role')
-        read_only_fields = ('role',)
+        fields = ('id', 'email', 'first_name', 'last_name', 'role', 'is_verified')
+        read_only_fields = ('role', 'is_verified')
 
-class SpecializationSerializer(serializers.ModelSerializer):
+class ProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
     class Meta:
-        model = Specialization
-        fields = '__all__'
-
-class AchievementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Achievement
-        exclude = ('profile',)
+        model = Profile
+        fields = ('id', 'user', 'avatar', 'bio', 'language', 'social_links', 
+                 'role_data', 'rating', 'courses_count', 'reviews_count', 
+                 'verification_status', 'verified_at', 'created_at', 'updated_at')
 
 class EducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Education
-        exclude = ('profile',)
+        fields = '__all__'
+        read_only_fields = ('user',)
 
 class WorkExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkExperience
-        exclude = ('profile',)
+        fields = '__all__'
+        read_only_fields = ('user',)
 
-class ProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    specializations = SpecializationSerializer(many=True, read_only=True)
-    achievements = AchievementSerializer(many=True, read_only=True, source='achievement_records')
-    education = EducationSerializer(many=True, read_only=True, source='education_records')
-    work_experience = WorkExperienceSerializer(many=True, read_only=True, source='work_experiences')
-    rating = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
-
+class AchievementSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Profile
-        fields = ('id', 'user', 'specializations', 'achievements', 'education', 
-                 'work_experience', 'rating', 'social_links', 'slug', 'created_at', 
-                 'updated_at')
+        model = Achievement
+        fields = '__all__'
+        read_only_fields = ('user',)
