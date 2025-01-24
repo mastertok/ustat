@@ -1,7 +1,7 @@
 import { Box } from '@mui/material';
 import Hero from '../components/Home/Hero';
-import CategoryCarousel from '../components/Home/CategoryCarousel';
-import NewCourses from '../components/Home/NewCourses';
+import CategoryList from '../components/Home/CategoryList';
+import PopularCourses from '../components/Home/PopularCourses';
 import FeatureSection from '../components/Home/FeatureSection';
 import TestimonialSection from '../components/Home/TestimonialSection';
 import PartnersSection from '../components/Home/PartnersSection';
@@ -13,12 +13,12 @@ const Home = () => {
       <Hero />
       
       {/* 2. Категории курсов */}
-      <CategoryCarousel />
+      <CategoryList />
       
-      {/* 3. Новые курсы */}
-      <NewCourses />
+      {/* 3. Популярные курсы */}
+      <PopularCourses />
       
-      {/* 4. Почему выбирают Устат */}
+      {/* 4. Особенности */}
       <FeatureSection />
       
       {/* 5. Отзывы */}

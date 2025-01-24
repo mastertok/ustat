@@ -1,4 +1,4 @@
-import { Box, Grid, Typography, Skeleton } from '@mui/material';
+import { Box, Grid, Typography, Skeleton, useTheme, Container } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { Course } from '../../types/api';

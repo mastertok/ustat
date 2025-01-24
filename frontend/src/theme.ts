@@ -31,31 +31,31 @@ const theme = createTheme({
     primary: {
       main: google.blue,
       light: alpha(google.blue, 0.8),
-      dark: alpha(google.blue, 1.2),
+      dark: alpha(google.blue, 1.0),
       contrastText: '#ffffff',
     },
     secondary: {
       main: google.red,
       light: alpha(google.red, 0.8),
-      dark: alpha(google.red, 1.2),
+      dark: alpha(google.red, 1.0),
       contrastText: '#ffffff',
     },
     success: {
       main: google.green,
       light: alpha(google.green, 0.8),
-      dark: alpha(google.green, 1.2),
+      dark: alpha(google.green, 1.0),
       contrastText: '#ffffff',
     },
     warning: {
       main: google.yellow,
       light: alpha(google.yellow, 0.8),
-      dark: alpha(google.yellow, 1.2),
+      dark: alpha(google.yellow, 1.0),
       contrastText: '#ffffff',
     },
     error: {
       main: google.red,
       light: alpha(google.red, 0.8),
-      dark: alpha(google.red, 1.2),
+      dark: alpha(google.red, 1.0),
       contrastText: '#ffffff',
     },
     background: {
