@@ -2,9 +2,17 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db.models import Avg, Count
-from core.models import AutoRegisterAdmin
 from django.utils import timezone
+from django.contrib.contenttypes import fields as contenttypes_fields
+from django.contrib.contenttypes import models as contenttypes_models
+from core.models import BaseModel
+
+phone_regex = RegexValidator(
+    regex=r'^\+?1?\d{9,15}$',
+    message="Номер телефона должен быть в формате: '+999999999'. До 15 цифр."
+)
 
 class User(AbstractUser):
     """
@@ -17,14 +25,32 @@ class User(AbstractUser):
         ('admin', 'Администратор'),
     )
     
-    role = models.CharField('Роль', max_length=10, choices=ROLE_CHOICES, default='student')
+    role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES, default='student', db_index=True)
     bio = models.TextField('Биография', blank=True)
     avatar = models.ImageField('Фото профиля', upload_to='avatars/', blank=True)
-    phone = models.CharField('Телефон', max_length=15, blank=True)
+    phone = models.CharField(
+        'Телефон',
+        max_length=15,
+        blank=True,
+        unique=True,
+        validators=[phone_regex]
+    )
     
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        indexes = [
+            models.Index(fields=['role', 'username']),
+            models.Index(fields=['role', 'email']),
+            models.Index(fields=['role', 'username'], condition=models.Q(is_active=True), name='active_users_idx'),
+            models.Index(fields=['date_joined', 'role']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(role__in=['student', 'teacher', 'producer', 'admin']),
+                name='valid_role'
+            )
+        ]
         permissions = [
             # Права для студента
             ("can_enroll_course", "Может записаться на курс"),
@@ -43,76 +69,153 @@ class User(AbstractUser):
             ("can_view_marketing_analytics", "Может просматривать маркетинговую аналитику"),
             ("can_manage_advertising", "Может управлять рекламой"),
             ("can_manage_email_campaigns", "Может управлять email-рассылками"),
-            
-            # Права для администратора
-            ("can_manage_users", "Может управлять пользователями"),
-            ("can_manage_all_courses", "Может управлять всеми курсами"),
-            ("can_manage_site_settings", "Может управлять настройками сайта"),
         ]
 
     def get_role_permissions(self):
         """Возвращает список разрешений в зависимости от роли пользователя"""
-        permissions = {
-            'student': [
-                'can_enroll_course',
-                'can_view_course_content',
-                'can_leave_review',
-            ],
-            'teacher': [
-                'can_create_course',
-                'can_edit_own_course',
-                'can_view_course_analytics',
-                'can_interact_with_students',
-            ],
-            'producer': [
-                'can_edit_course_landing',
-                'can_manage_promotions',
-                'can_view_marketing_analytics',
-                'can_manage_advertising',
-                'can_manage_email_campaigns',
-            ],
-            'admin': [
-                'can_manage_users',
-                'can_manage_all_courses',
-                'can_manage_site_settings',
-            ],
-        }
-        return permissions.get(self.role, [])
+        permissions = []
+        if self.is_student():
+            permissions.extend(['can_enroll_course', 'can_view_course_content', 'can_leave_review'])
+        elif self.is_teacher():
+            permissions.extend(['can_create_course', 'can_edit_own_course', 'can_view_course_analytics'])
+        elif self.is_producer():
+            permissions.extend(['can_edit_course_landing', 'can_manage_promotions', 'can_view_marketing_analytics'])
+        return permissions
 
     def has_role_permission(self, permission):
         """Проверяет, есть ли у пользователя разрешение в соответствии с его ролью"""
         return permission in self.get_role_permissions()
 
-    @property
     def is_student(self):
         return self.role == 'student'
 
-    @property
     def is_teacher(self):
         return self.role == 'teacher'
 
-    @property
     def is_producer(self):
         return self.role == 'producer'
 
-    @property
-    def is_admin(self):
-        return self.role == 'admin'
-
     def get_absolute_url(self):
-        if self.is_teacher:
-            return reverse('accounts:teacher_profile', kwargs={'slug': self.teacher_profile.slug})
         return reverse('accounts:user_profile', kwargs={'username': self.username})
 
-class Specialization(AutoRegisterAdmin):
+class Profile(BaseModel):
+    """
+    Профиль пользователя с дополнительной информацией
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    rating = models.DecimalField(
+        'Рейтинг',
+        max_digits=5,
+        decimal_places=2,
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
+    social_links = models.JSONField('Социальные сети', default=dict, blank=True)
+    slug = models.SlugField('URL', max_length=150, unique=True)
+    specializations = models.ManyToManyField(
+        'Specialization',
+        verbose_name='Специализации',
+        related_name='profiles',
+        blank=True
+    )
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Профиль'
+        verbose_name_plural = 'Профили'
+        indexes = [
+            models.Index(fields=['user', 'rating']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        return f'Профиль пользователя {self.user.username}'
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.user.username)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('accounts:profile_detail', kwargs={'slug': self.slug})
+
+    def get_rating(self):
+        """Вычисляет средний рейтинг на основе отзывов о курсах"""
+        if hasattr(self.user, 'courses'):
+            return self.user.courses.aggregate(
+                avg_rating=Avg('reviews__rating')
+            )['avg_rating'] or 0.0
+        return 0.0
+
+    def update_rating(self):
+        """Обновляет рейтинг профиля"""
+        self.rating = self.get_rating()
+        self.save(update_fields=['rating'])
+
+class RoleSpecificData(BaseModel):
+    """
+    Модель для хранения специфичных данных каждой роли
+    """
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='role_specific_data')
+    role = models.CharField(max_length=20, choices=User.ROLE_CHOICES)
+    data = models.JSONField('Данные')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Данные роли'
+        verbose_name_plural = 'Данные ролей'
+        unique_together = ['profile', 'role']
+        indexes = [
+            models.Index(fields=['profile', 'role']),
+            models.Index(fields=['-updated_at']),
+        ]
+
+class AuditLog(BaseModel):
+    """
+    Модель для аудита действий пользователей
+    """
+    ACTION_CHOICES = (
+        ('create', 'Создание'),
+        ('update', 'Изменение'),
+        ('delete', 'Удаление'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    content_type = models.ForeignKey(contenttypes_models.ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = contenttypes_fields.GenericForeignKey('content_type', 'object_id')
+    changes = models.JSONField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Лог аудита'
+        verbose_name_plural = 'Логи аудита'
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['-timestamp']),
+            models.Index(fields=['user', '-timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.content_type} - {self.timestamp}"
+
+class Specialization(BaseModel):
     name = models.CharField('Название', max_length=100)
     description = models.TextField('Описание', blank=True)
-    slug = models.SlugField('URL', unique=True)
+    slug = models.CharField('URL', max_length=150, unique=True)
 
     class Meta:
         verbose_name = 'Специализация'
         verbose_name_plural = 'Специализации'
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['name', 'slug']),
+        ]
 
     def __str__(self):
         return self.name
@@ -122,8 +225,8 @@ class Specialization(AutoRegisterAdmin):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
-class Education(AutoRegisterAdmin):
-    teacher = models.ForeignKey('TeacherProfile', on_delete=models.CASCADE, related_name='education_records')
+class Education(BaseModel):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='education_records')
     institution = models.CharField('Учебное заведение', max_length=200)
     degree = models.CharField('Степень/Квалификация', max_length=100)
     field_of_study = models.CharField('Направление обучения', max_length=100)
@@ -135,12 +238,16 @@ class Education(AutoRegisterAdmin):
         verbose_name = 'Образование'
         verbose_name_plural = 'Образование'
         ordering = ['-end_date', '-start_date']
+        indexes = [
+            models.Index(fields=['profile', 'start_date']),
+            models.Index(fields=['profile', 'end_date']),
+        ]
 
     def __str__(self):
-        return f"{self.degree} - {self.institution}"
+        return f"{self.degree} в {self.institution}"
 
-class WorkExperience(AutoRegisterAdmin):
-    teacher = models.ForeignKey('TeacherProfile', on_delete=models.CASCADE, related_name='work_experiences')
+class WorkExperience(BaseModel):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='work_experiences')
     company = models.CharField('Компания/Организация', max_length=200)
     position = models.CharField('Должность', max_length=100)
     start_date = models.DateField('Дата начала')
@@ -152,6 +259,10 @@ class WorkExperience(AutoRegisterAdmin):
         verbose_name = 'Опыт работы'
         verbose_name_plural = 'Опыт работы'
         ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['profile', 'is_current']),
+            models.Index(fields=['profile', 'start_date']),
+        ]
 
     def __str__(self):
         return f"{self.position} в {self.company}"
@@ -161,120 +272,22 @@ class WorkExperience(AutoRegisterAdmin):
             self.end_date = None
         super().save(*args, **kwargs)
 
-class Achievement(AutoRegisterAdmin):
-    teacher = models.ForeignKey('TeacherProfile', on_delete=models.CASCADE, related_name='achievement_records')
+class Achievement(BaseModel):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='achievement_records')
     title = models.CharField('Название', max_length=200)
     date_received = models.DateField('Дата получения')
     issuer = models.CharField('Кем выдано', max_length=200)
     description = models.TextField('Описание', blank=True)
     certificate_file = models.FileField('Файл сертификата', upload_to='certificates/', blank=True)
     certificate_link = models.URLField('Ссылка на сертификат', blank=True)
-    
+
     class Meta:
         verbose_name = 'Достижение'
         verbose_name_plural = 'Достижения'
         ordering = ['-date_received']
+        indexes = [
+            models.Index(fields=['profile', 'date_received']),
+        ]
 
     def __str__(self):
-        return self.title
-
-class TeacherProfile(AutoRegisterAdmin, models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile')
-    specializations = models.ManyToManyField(Specialization, verbose_name='Специализации', related_name='teachers')
-    experience_summary = models.TextField('Краткое описание опыта', blank=True)
-    achievements_summary = models.TextField('Краткое описание достижений', blank=True)
-    education_summary = models.TextField('Краткое описание образования', blank=True)
-    rating = models.DecimalField('Рейтинг', max_digits=3, decimal_places=2, default=0)
-    students_count = models.PositiveIntegerField('Количество учеников', default=0)
-    reviews_count = models.PositiveIntegerField('Количество отзывов', default=0)
-    social_links = models.JSONField('Социальные сети', default=dict, blank=True)
-    teaching_style = models.TextField('Стиль преподавания', blank=True)
-    slug = models.SlugField('URL', unique=True, blank=True)
-    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
-    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
-
-    class Meta:
-        verbose_name = 'Профиль учителя'
-        verbose_name_plural = 'Профили учителей'
-
-    def __str__(self):
-        return f"{self.user.get_full_name()}"
-
-    def total_experience_years(self):
-        """Подсчитывает общий опыт работы в годах"""
-        total_years = 0
-        for exp in self.work_experiences.all():
-            end_date = exp.end_date or timezone.now().date()
-            years = (end_date - exp.start_date).days / 365
-            total_years += years
-        return round(total_years, 1)
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(f"{self.user.get_full_name()}-{self.user.username}")
-        super().save(*args, **kwargs)
-
-    def get_absolute_url(self):
-        return reverse('teacher_profile_detail', kwargs={'slug': self.slug})
-
-    def update_rating(self):
-        """Обновляет рейтинг учителя на основе отзывов всех его курсов"""
-        from courses.models import Course, Review
-        courses = Course.objects.filter(teacher=self)
-        avg_rating = Review.objects.filter(course__in=courses).aggregate(Avg('rating'))['rating__avg']
-        if avg_rating:
-            self.rating = round(avg_rating, 2)
-            self.save(update_fields=['rating'])
-
-    def update_reviews_count(self):
-        """Обновляет количество отзывов для всех курсов учителя"""
-        from courses.models import Course, Review
-        courses = Course.objects.filter(teacher=self)
-        self.reviews_count = Review.objects.filter(course__in=courses).count()
-        self.save(update_fields=['reviews_count'])
-
-    def update_students_count(self):
-        """Обновляет количество уникальных студентов на всех курсах учителя"""
-        from courses.models import Course, Enrollment
-        courses = Course.objects.filter(teacher=self)
-        self.students_count = Enrollment.objects.filter(course__in=courses).values('student').distinct().count()
-        self.save(update_fields=['students_count'])
-
-    def total_courses(self):
-        """Возвращает общее количество курсов учителя"""
-        from courses.models import Course
-        return Course.objects.filter(teacher=self).count()
-
-    def published_courses(self):
-        """Возвращает количество опубликованных курсов учителя"""
-        from courses.models import Course
-        return Course.objects.filter(teacher=self, status='published').count()
-
-class StudentProfile(AutoRegisterAdmin, models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
-    interests = models.TextField('Интересы', blank=True)
-    education_level = models.CharField('Уровень образования', max_length=20, choices=[
-        ('school', 'Школьник'),
-        ('bachelor', 'Бакалавр'),
-        ('master', 'Магистр'),
-        ('phd', 'PhD')
-    ])
-    
-    class Meta:
-        verbose_name = 'Профиль студента'
-        verbose_name_plural = 'Профили студентов'
-
-    def __str__(self):
-        return f"{self.user.get_full_name()} - {self.get_education_level_display()}"
-
-class ProducerProfile(AutoRegisterAdmin, models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='producer_profile')
-    company = models.CharField('Компания', max_length=100, blank=True)
-    portfolio = models.URLField('Портфолио', blank=True)
-    
-    class Meta:
-        verbose_name = 'Профиль продюсера'
-        verbose_name_plural = 'Профили продюсеров'
-
-    def __str__(self):
-        return f"{self.user.get_full_name()} - {self.company if self.company else 'Независимый продюсер'}"
+        return f"{self.title} от {self.issuer}"

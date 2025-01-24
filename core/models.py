@@ -1,7 +1,16 @@
 from django.db import models
 from django.contrib import admin
 
-class AutoRegisterAdmin(models.Model):
+class BaseModel(models.Model):
+    """Базовая модель с общими полями"""
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+
+    class Meta:
+        abstract = True
+
+class AutoRegisterAdmin(BaseModel):
+    """Базовая модель с автоматической регистрацией в админке"""
     class Meta:
         abstract = True
 

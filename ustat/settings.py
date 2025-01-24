@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-^-+9_m#b3e%vadhknj1uf5f)o)%ls4(5b^*)23b-%v^ye@5ma_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -37,25 +37,27 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ckeditor',
-    'accounts',
-    'courses',
-    'reviews',
-    'demo',
-    'main',
-    'analytics',
     
-    # REST Framework
+    # Сторонние приложения
     'rest_framework',
     'corsheaders',
-    'drf_yasg',
+    'drf_spectacular',
     'django_filters',
+    'django_prometheus',
+    'ckeditor',
+    
+    # Наши приложения
+    'core.apps.CoreConfig',
+    'accounts.apps.AccountsConfig',
+    'courses.apps.CoursesConfig',
+    'reviews.apps.ReviewsConfig',
+    'analytics.apps.AnalyticsConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Добавляем CORS middleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -68,9 +70,7 @@ ROOT_URLCONF = 'ustat.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'templates',
-        ],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -87,8 +87,6 @@ WSGI_APPLICATION = 'ustat.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -141,10 +139,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Настройки аутентификации
+# User model
 AUTH_USER_MODEL = 'accounts.User'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'home'
 
 # CKEditor конфигурация
 CKEDITOR_CONFIGS = {
@@ -155,22 +151,43 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-# REST Framework settings
+# Настройки безопасности
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
+# Настройки REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
 
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # Только для разработки! В продакшене настройте конкретные домены
-CORS_ALLOW_CREDENTIALS = True
+# Настройки документации API
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Ustat API',
+    'DESCRIPTION': 'API для образовательной платформы Устат',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 # Swagger settings
 SWAGGER_SETTINGS = {
@@ -185,3 +202,9 @@ SWAGGER_SETTINGS = {
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Пытаемся импортировать локальные настройки
+try:
+    from .local_settings import *
+except ImportError:
+    pass

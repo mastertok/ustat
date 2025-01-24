@@ -8,6 +8,7 @@ class ReviewAdmin(admin.ModelAdmin):
     list_display = ('course', 'user', 'rating', 'created_at')
     list_filter = ('rating', 'created_at')
     search_fields = ('comment', 'user__username', 'course__title')
+    readonly_fields = ('created_at', 'updated_at')
     date_hierarchy = 'created_at'
 
 @admin.register(Reply)

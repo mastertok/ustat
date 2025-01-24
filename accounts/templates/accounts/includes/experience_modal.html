@@ -1,0 +1,48 @@
+<!-- Модальное окно для добавления опыта работы -->
+<div class="modal fade" id="experienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="experienceModalLabel">Добавить опыт работы</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="experienceForm" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="company" class="form-label">Компания/Организация</label>
+                        <input type="text" class="form-control" id="company" name="company" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="position" class="form-label">Должность</label>
+                        <input type="text" class="form-control" id="position" name="position" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Дата начала</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_current" name="is_current">
+                            <label class="form-check-label" for="is_current">
+                                Текущее место работы
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="end_date_group">
+                        <label for="end_date" class="form-label">Дата окончания</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Описание обязанностей</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveExperience">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>

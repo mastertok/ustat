@@ -1,0 +1,31 @@
+{"asctime": "2025-01-24 16:55:02,202", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 16:55:38,376", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\celery.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 16:55:39,025", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 16:57:06,061", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 16:57:40,674", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 16:57:40,893", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 16:57:41,343", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 16:57:41,596", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:11:31,617", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 17:17:32,901", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 17:17:32,927", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 17:17:33,246", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 17:17:33,658", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 17:17:33,940", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:20:48,190", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:21:37,912", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 17:21:37,932", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 17:21:37,936", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 17:21:37,969", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 17:21:38,730", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:21:38,787", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 17:21:38,795", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:21:38,810", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader", "taskName": null}
+{"asctime": "2025-01-24 17:21:47,473", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:32:30,811", "levelname": "INFO", "name": "django.utils.autoreload", "message": "Watching for file changes with StatReloader"}
+{"asctime": "2025-01-24 17:42:05,009", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 17:42:05,595", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 17:42:05,614", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading.", "taskName": null}
+{"asctime": "2025-01-24 17:42:05,867", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 17:42:05,873", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}
+{"asctime": "2025-01-24 17:42:05,888", "levelname": "INFO", "name": "django.utils.autoreload", "message": "C:\\Users\\Kitepkanachy\\Documents\\\u0423\u0441\u0442\u0430\u0442\\ustat\\settings.py changed, reloading."}

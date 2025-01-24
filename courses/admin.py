@@ -7,23 +7,23 @@ from .models import (
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = (
-        'title', 'category', 'teacher', 'course_type',
-        'price', 'status', 'average_rating', 'sales_count'
+        'title', 'category', 'type',
+        'price', 'status', 'average_rating', 'students_count'
     )
     list_filter = (
-        'status', 'course_type', 'category',
-        'difficulty_level', 'language', 'teacher'
+        'status', 'type', 'category',
+        'difficulty', 'language'
     )
     search_fields = ('title', 'description', 'excerpt')
     prepopulated_fields = {'slug': ('title',)}
     filter_horizontal = ('tags',)
-    readonly_fields = ('average_rating', 'reviews_count', 'sales_count', 'created_at', 'updated_at')
+    readonly_fields = ('students_count', 'average_rating', 'reviews_count', 'published_at', 'archived_at')
     
     fieldsets = (
         ('Основная информация', {
             'fields': (
                 'title', 'slug', 'description', 'excerpt',
-                'category', 'tags', 'teacher', 'producer'
+                'category', 'tags'
             )
         }),
         ('Медиа', {
@@ -32,31 +32,21 @@ class CourseAdmin(admin.ModelAdmin):
         }),
         ('Настройки курса', {
             'fields': (
-                'difficulty_level', 'language', 'duration_minutes',
-                'max_students', 'enable_qa', 'enable_announcements',
-                'enable_reviews'
+                'difficulty', 'language', 'duration'
             ),
             'classes': ('collapse',)
         }),
         ('Цена и тип', {
-            'fields': ('course_type', 'price', 'currency', 'discount_price'),
+            'fields': ('type', 'price', 'currency', 'discount_price'),
             'classes': ('collapse',)
         }),
         ('Статистика', {
-            'fields': ('sales_count', 'average_rating', 'reviews_count'),
+            'fields': ('students_count', 'average_rating', 'reviews_count'),
             'classes': ('collapse',)
         }),
         ('Статус', {
-            'fields': ('status', 'published_at')
+            'fields': ('status', 'published_at', 'archived_at')
         }),
-        ('SEO', {
-            'fields': ('seo_title', 'seo_description', 'seo_keywords'),
-            'classes': ('collapse',)
-        }),
-        ('Системная информация', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        })
     )
 
 @admin.register(Module)

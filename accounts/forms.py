@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import TeacherProfile, Education, WorkExperience, Achievement
+from .models import Profile, Education, WorkExperience, Achievement
 
 User = get_user_model()
 
-class TeacherProfileForm(forms.ModelForm):
+class ProfileForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30, label='Имя')
     last_name = forms.CharField(max_length=30, label='Фамилия')
     email = forms.EmailField(label='Email')
@@ -13,14 +13,12 @@ class TeacherProfileForm(forms.ModelForm):
     avatar = forms.ImageField(required=False, label='Фото профиля')
 
     class Meta:
-        model = TeacherProfile
+        model = Profile
         fields = [
-            'specializations', 'experience_summary', 'achievements_summary',
-            'education_summary', 'social_links', 'teaching_style'
+            'specializations', 'social_links'
         ]
         widgets = {
             'social_links': forms.Textarea(attrs={'placeholder': '{"vk": "https://vk.com/...", "telegram": "@username"}'}),
-            'teaching_style': forms.Textarea(attrs={'placeholder': 'Опишите ваш подход к обучению...'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -52,7 +50,7 @@ class TeacherProfileForm(forms.ModelForm):
 class EducationForm(forms.ModelForm):
     class Meta:
         model = Education
-        exclude = ['teacher']
+        exclude = ['profile']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),
@@ -61,7 +59,7 @@ class EducationForm(forms.ModelForm):
 class WorkExperienceForm(forms.ModelForm):
     class Meta:
         model = WorkExperience
-        exclude = ['teacher']
+        exclude = ['profile']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),
@@ -70,7 +68,7 @@ class WorkExperienceForm(forms.ModelForm):
 class AchievementForm(forms.ModelForm):
     class Meta:
         model = Achievement
-        exclude = ['teacher']
+        exclude = ['profile']
         widgets = {
             'date_received': forms.DateInput(attrs={'type': 'date'}),
         }

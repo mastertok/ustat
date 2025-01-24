@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ profile.user.get_full_name }} - Профиль{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            {% if profile.user.avatar %}
+                <img src="{{ profile.user.avatar.url }}" alt="{{ profile.user.get_full_name }}">
+            {% else %}
+                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar">
+            {% endif %}
+        </div>
+        <div class="profile-info">
+            <h1>{{ profile.user.get_full_name }}</h1>
+            <p class="role">{{ profile.user.get_role_display }}</p>
+            {% if profile.rating %}
+                <div class="rating">
+                    <span class="stars">★</span>
+                    <span class="rating-value">{{ profile.rating }}</span>
+                </div>
+            {% endif %}
+            {% if profile.specializations.exists %}
+                <div class="specializations">
+                    {% for spec in profile.specializations.all %}
+                        <span class="badge">{{ spec.name }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if profile.user.bio %}
+                <div class="bio">
+                    {{ profile.user.bio|linebreaks }}
+                </div>
+            {% endif %}
+            {% if profile.social_links %}
+                <div class="social-links">
+                    {% for platform, link in profile.social_links.items %}
+                        <a href="{{ link }}" target="_blank" class="social-link {{ platform }}">
+                            <i class="fab fa-{{ platform }}"></i>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if request.user == profile.user %}
+                <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">Редактировать профиль</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if profile.user.role == 'teacher' %}
+        <div class="teacher-stats">
+            <div class="stat-item">
+                <span class="stat-value">{{ total_students }}</span>
+                <span class="stat-label">Студентов</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ total_courses }}</span>
+                <span class="stat-label">Курсов</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ total_reviews }}</span>
+                <span class="stat-label">Отзывов</span>
+            </div>
+        </div>
+
+        <div class="courses-section">
+            <h2>Курсы</h2>
+            <div class="filters">
+                {% if categories %}
+                    <select name="category" class="form-select">
+                        <option value="">Все категории</option>
+                        {% for category in categories %}
+                            <option value="{{ category.category__slug }}"
+                                    {% if request.GET.category == category.category__slug %}selected{% endif %}>
+                                {{ category.category__name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+                <select name="price" class="form-select">
+                    <option value="">Сортировка по цене</option>
+                    <option value="asc" {% if request.GET.price == 'asc' %}selected{% endif %}>По возрастанию</option>
+                    <option value="desc" {% if request.GET.price == 'desc' %}selected{% endif %}>По убыванию</option>
+                </select>
+                <select name="popularity" class="form-select">
+                    <option value="">Сортировка по популярности</option>
+                    <option value="rating" {% if request.GET.popularity == 'rating' %}selected{% endif %}>По рейтингу</option>
+                    <option value="students" {% if request.GET.popularity == 'students' %}selected{% endif %}>По количеству студентов</option>
+                </select>
+            </div>
+
+            <div class="courses-grid">
+                {% for course in courses %}
+                    <div class="course-card">
+                        {% if course.image %}
+                            <img src="{{ course.image.url }}" alt="{{ course.title }}">
+                        {% endif %}
+                        <div class="course-info">
+                            <h3>{{ course.title }}</h3>
+                            <p>{{ course.short_description }}</p>
+                            <div class="course-meta">
+                                <span class="price">{{ course.price }} ₽</span>
+                                {% if course.avg_rating %}
+                                    <span class="rating">★ {{ course.avg_rating|floatformat:1 }}</span>
+                                {% endif %}
+                                <span class="students">{{ course.enrolled_students.count }} студентов</span>
+                            </div>
+                            <a href="{{ course.get_absolute_url }}" class="btn btn-primary">Подробнее</a>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p>Нет доступных курсов</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="profile-sections">
+        {% if profile.education_records.exists %}
+            <section class="education-section">
+                <h2>Образование</h2>
+                {% for edu in profile.education_records.all %}
+                    <div class="education-item">
+                        <h3>{{ edu.institution }}</h3>
+                        <p class="degree">{{ edu.degree }} - {{ edu.field_of_study }}</p>
+                        <p class="period">
+                            {{ edu.start_date|date:"Y" }} - 
+                            {% if edu.end_date %}
+                                {{ edu.end_date|date:"Y" }}
+                            {% else %}
+                                По настоящее время
+                            {% endif %}
+                        </p>
+                        {% if edu.description %}
+                            <p class="description">{{ edu.description }}</p>
+                        {% endif %}
+                        {% if request.user == profile.user %}
+                            <button class="btn btn-danger btn-sm delete-education" data-id="{{ edu.id }}">Удалить</button>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% if request.user == profile.user %}
+                    <button class="btn btn-primary add-education">Добавить образование</button>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {% if profile.work_experiences.exists %}
+            <section class="experience-section">
+                <h2>Опыт работы</h2>
+                {% for exp in profile.work_experiences.all %}
+                    <div class="experience-item">
+                        <h3>{{ exp.position }}</h3>
+                        <p class="company">{{ exp.company }}</p>
+                        <p class="period">
+                            {{ exp.start_date|date:"Y" }} - 
+                            {% if exp.is_current %}
+                                По настоящее время
+                            {% else %}
+                                {{ exp.end_date|date:"Y" }}
+                            {% endif %}
+                        </p>
+                        {% if exp.description %}
+                            <p class="description">{{ exp.description }}</p>
+                        {% endif %}
+                        {% if request.user == profile.user %}
+                            <button class="btn btn-danger btn-sm delete-experience" data-id="{{ exp.id }}">Удалить</button>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% if request.user == profile.user %}
+                    <button class="btn btn-primary add-experience">Добавить опыт работы</button>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {% if profile.achievement_records.exists %}
+            <section class="achievements-section">
+                <h2>Достижения</h2>
+                {% for achievement in profile.achievement_records.all %}
+                    <div class="achievement-item">
+                        <h3>{{ achievement.title }}</h3>
+                        <p class="issuer">{{ achievement.issuer }}</p>
+                        <p class="date">{{ achievement.date_received|date:"F Y" }}</p>
+                        {% if achievement.description %}
+                            <p class="description">{{ achievement.description }}</p>
+                        {% endif %}
+                        {% if achievement.certificate_file %}
+                            <a href="{{ achievement.certificate_file.url }}" target="_blank" class="btn btn-sm btn-secondary">
+                                Просмотреть сертификат
+                            </a>
+                        {% endif %}
+                        {% if achievement.certificate_link %}
+                            <a href="{{ achievement.certificate_link }}" target="_blank" class="btn btn-sm btn-secondary">
+                                Ссылка на сертификат
+                            </a>
+                        {% endif %}
+                        {% if request.user == profile.user %}
+                            <button class="btn btn-danger btn-sm delete-achievement" data-id="{{ achievement.id }}">Удалить</button>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% if request.user == profile.user %}
+                    <button class="btn btn-primary add-achievement">Добавить достижение</button>
+                {% endif %}
+            </section>
+        {% endif %}
+    </div>
+</div>
+
+{% if request.user == profile.user %}
+    <!-- Модальные окна для добавления информации -->
+    {% include "accounts/includes/education_modal.html" %}
+    {% include "accounts/includes/experience_modal.html" %}
+    {% include "accounts/includes/achievement_modal.html" %}
+
+    <!-- JavaScript для обработки форм -->
+    <script src="{% static 'js/profile_forms.js' %}"></script>
+{% endif %}
+{% endblock %}

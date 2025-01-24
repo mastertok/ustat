@@ -4,8 +4,8 @@ from . import views
 app_name = 'accounts'
 
 urlpatterns = [
-    path('teacher/<slug:slug>/', views.TeacherProfileView.as_view(), name='teacher_profile'),
-    path('teacher/edit/', views.TeacherProfileEditView.as_view(), name='teacher_profile_edit'),
+    path('profile/<slug:slug>/', views.ProfileView.as_view(), name='profile'),
+    path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
     
     # API для управления образованием
     path('education/add/', views.add_education, name='add_education'),

@@ -2,12 +2,13 @@ from django.db import models
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db.models import Avg
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from django.urls import reverse
 from django.utils.text import slugify
+from django.core.cache import cache
 from ckeditor.fields import RichTextField
-from accounts.models import TeacherProfile, ProducerProfile, User
+from accounts.models import User
 from core.models import AutoRegisterAdmin
 
 def validate_video_url(value):
@@ -21,18 +22,100 @@ def validate_image_size(value):
         raise ValidationError('Максимальный размер изображения 2MB')
 
 class Category(AutoRegisterAdmin, models.Model):
-    name = models.CharField('Название', max_length=100)
-    slug = models.SlugField('URL', unique=True)
+    name = models.CharField('Название', max_length=100, db_index=True)
+    slug = models.SlugField('URL', unique=True, db_index=True)
     description = models.TextField('Описание', blank=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, 
                               related_name='children', verbose_name='Родительская категория')
+    
+    # Вычисляемые поля
+    courses_count = models.PositiveIntegerField('Количество курсов', default=0)
+    active_courses_count = models.PositiveIntegerField('Активные курсы', default=0)
+    total_students = models.PositiveIntegerField('Всего студентов', default=0)
+    average_course_rating = models.DecimalField('Средний рейтинг курсов', 
+                                              max_digits=3, decimal_places=2, default=0)
+    
+    # Метаданные
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    last_course_added = models.DateTimeField('Последний добавленный курс', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['-courses_count']),  # Для сортировки по популярности
+            models.Index(fields=['-active_courses_count']),
+            models.Index(fields=['-average_course_rating']),
+        ]
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def update_counts(self):
+        """Обновляет все вычисляемые поля"""
+        from django.db.models import Count, Avg, Q
+        
+        # Получаем все курсы в категории и её подкатегориях
+        categories = self.get_descendants(include_self=True)
+        courses = Course.objects.filter(category__in=categories)
+        
+        # Подсчитываем общее количество курсов
+        self.courses_count = courses.count()
+        
+        # Подсчитываем активные курсы
+        self.active_courses_count = courses.filter(status='published').count()
+        
+        # Подсчитываем уникальных студентов
+        self.total_students = Enrollment.objects.filter(
+            course__in=courses
+        ).values('student').distinct().count()
+        
+        # Вычисляем средний рейтинг
+        avg_rating = courses.aggregate(avg=Avg('average_rating'))['avg']
+        self.average_course_rating = round(avg_rating, 2) if avg_rating else 0
+        
+        # Обновляем дату последнего добавленного курса
+        latest_course = courses.order_by('-created_at').first()
+        if latest_course:
+            self.last_course_added = latest_course.created_at
+        
+        self.save()
+
+    def get_descendants(self, include_self=True):
+        """Возвращает все подкатегории"""
+        descendants = []
+        if include_self:
+            descendants.append(self)
+        
+        for child in self.children.all():
+            descendants.extend(child.get_descendants())
+        
+        return descendants
+
+    def get_course_statistics(self):
+        """Возвращает статистику по курсам в категории"""
+        return {
+            'total_courses': self.courses_count,
+            'active_courses': self.active_courses_count,
+            'total_students': self.total_students,
+            'average_rating': self.average_course_rating,
+            'last_course_added': self.last_course_added,
+        }
+
+    def get_popular_courses(self, limit=5):
+        """Возвращает популярные курсы в категории"""
+        return Course.objects.filter(
+            category__in=self.get_descendants(include_self=True),
+            status='published'
+        ).order_by('-students_count')[:limit]
 
 class Tag(AutoRegisterAdmin, models.Model):
     name = models.CharField('Название', max_length=50)
@@ -44,6 +127,43 @@ class Tag(AutoRegisterAdmin, models.Model):
 
     def __str__(self):
         return self.name
+
+class CourseUserRole(AutoRegisterAdmin, models.Model):
+    """
+    Промежуточная модель для связи пользователей с курсами и их ролями
+    """
+    ROLE_CHOICES = [
+        ('teacher', 'Преподаватель'),
+        ('producer', 'Продюсер'),
+        ('assistant', 'Ассистент'),  # Добавляем возможность для будущего расширения ролей
+    ]
+
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='user_roles')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_roles')
+    role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES)
+    
+    # Дополнительные поля для разных ролей
+    permissions = models.JSONField('Права доступа', default=dict, blank=True)
+    is_primary = models.BooleanField('Основная роль', default=False)
+    added_at = models.DateTimeField('Дата добавления', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Роль пользователя в курсе'
+        verbose_name_plural = 'Роли пользователей в курсах'
+        unique_together = ['course', 'user', 'role']  # Один пользователь может иметь только одну роль определенного типа
+        
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.get_role_display()} в курсе {self.course.title}"
+    
+    def save(self, *args, **kwargs):
+        # Если это основная роль, убеждаемся что нет других основных ролей того же типа
+        if self.is_primary:
+            CourseUserRole.objects.filter(
+                course=self.course,
+                role=self.role,
+                is_primary=True
+            ).exclude(id=self.id).update(is_primary=False)
+        super().save(*args, **kwargs)
 
 class Course(AutoRegisterAdmin, models.Model):
     DIFFICULTY_CHOICES = [
@@ -78,20 +198,32 @@ class Course(AutoRegisterAdmin, models.Model):
     ]
 
     # Основная информация
-    title = models.CharField('Название', max_length=200)
-    slug = models.SlugField('URL', unique=True)
+    title = models.CharField('Название', max_length=200, db_index=True)
+    slug = models.SlugField('URL', unique=True, db_index=True)
     description = RichTextField('Описание')
     excerpt = models.TextField('Краткое описание', blank=True)
     
     # Категоризация
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Категория')
-    tags = models.ManyToManyField(Tag, verbose_name='Теги', blank=True)
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.CASCADE, 
+        verbose_name='Категория',
+        related_name='courses'
+    )
+    tags = models.ManyToManyField(
+        Tag, 
+        verbose_name='Теги', 
+        blank=True,
+        related_name='courses'
+    )
     
-    # Преподаватели
-    teacher = models.ForeignKey(TeacherProfile, on_delete=models.SET_NULL, null=True, blank=True, 
-                               verbose_name='Преподаватель')
-    producer = models.ForeignKey(ProducerProfile, on_delete=models.SET_NULL, null=True, blank=True, 
-                                verbose_name='Продюсер')
+    # Участники курса
+    users = models.ManyToManyField(
+        User,
+        through='CourseUserRole',
+        through_fields=('course', 'user'),
+        related_name='participated_courses'
+    )
     
     # Медиа
     cover_image = models.ImageField(
@@ -109,94 +241,196 @@ class Course(AutoRegisterAdmin, models.Model):
         help_text='Поддерживаются ссылки с YouTube и Vimeo'
     )
     
-    # Настройки курса
-    max_students = models.PositiveIntegerField(
-        'Максимальное количество студентов',
-        default=0,
-        help_text='0 - без ограничений'
+    # Ценообразование
+    price = models.DecimalField(
+        'Цена',
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        default=0
     )
-    difficulty_level = models.CharField(
-        'Уровень сложности',
+    currency = models.CharField(
+        'Валюта',
+        max_length=3,
+        choices=CURRENCY_CHOICES,
+        default='KGS'
+    )
+    discount_price = models.DecimalField(
+        'Цена со скидкой',
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True
+    )
+    
+    # Характеристики
+    difficulty = models.CharField(
+        'Сложность',
         max_length=20,
         choices=DIFFICULTY_CHOICES,
         default='beginner'
     )
     language = models.CharField(
-        'Язык курса',
+        'Язык',
         max_length=2,
         choices=LANGUAGE_CHOICES,
         default='ru'
     )
-    duration_minutes = models.PositiveIntegerField(
-        'Продолжительность (в минутах)',
-        null=True,
-        blank=True
+    duration = models.PositiveIntegerField(
+        'Длительность (в минутах)',
+        default=0
     )
     
-    # Функциональность
-    enable_qa = models.BooleanField('Включить вопросы и ответы', default=True)
-    enable_announcements = models.BooleanField('Включить анонсы', default=True)
-    enable_reviews = models.BooleanField('Включить отзывы', default=True)
-    
-    # Цена и тип
-    course_type = models.CharField('Тип курса', max_length=10, choices=TYPE_CHOICES, default='paid')
-    price = models.DecimalField('Цена', max_digits=10, decimal_places=2, default=0)
-    currency = models.CharField('Валюта', max_length=3, choices=CURRENCY_CHOICES, default='KGS')
-    discount_price = models.DecimalField(
-        'Цена со скидкой',
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
+    # Статус и метаданные
+    status = models.CharField(
+        'Статус',
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='draft'
     )
-    
-    # Статистика
-    sales_count = models.PositiveIntegerField('Количество продаж', default=0)
-    average_rating = models.DecimalField('Средний рейтинг', max_digits=3, decimal_places=2, default=0)
-    reviews_count = models.PositiveIntegerField('Количество отзывов', default=0)
-    
-    # Статус
-    status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='draft')
-    
-    # SEO
-    seo_title = models.CharField('SEO заголовок', max_length=200, blank=True)
-    seo_description = models.TextField('SEO описание', blank=True)
-    seo_keywords = models.CharField('SEO ключевые слова', max_length=500, blank=True)
-    
-    # Даты
-    created_at = models.DateTimeField('Дата создания', default=timezone.now)
-    updated_at = models.DateTimeField('Дата обновления', default=timezone.now)
+    type = models.CharField(
+        'Тип курса',
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default='paid'
+    )
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
     published_at = models.DateTimeField('Дата публикации', null=True, blank=True)
+    archived_at = models.DateTimeField('Дата архивации', null=True, blank=True)
+    
+    # Вычисляемые поля
+    students_count = models.PositiveIntegerField('Количество студентов', default=0)
+    reviews_count = models.PositiveIntegerField('Количество отзывов', default=0)
+    average_rating = models.DecimalField(
+        'Средний рейтинг',
+        max_digits=3,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
+        default=0
+    )
+    total_lessons = models.PositiveIntegerField('Всего уроков', default=0)
+    completion_rate = models.DecimalField(
+        'Процент завершения',
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=0
+    )
 
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
-        
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['title']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['-average_rating']),
+            models.Index(fields=['-students_count']),
+            models.Index(fields=['type', 'status']),
+        ]
+
     def __str__(self):
         return self.title
-    
+
     def save(self, *args, **kwargs):
-        if not self.pk:  # Если объект создается впервые
-            self.created_at = timezone.now()
-        self.updated_at = timezone.now()
+        if not self.slug:
+            self.slug = slugify(self.title)
+            
+        # Инвалидируем кеш при сохранении
+        cache_keys = [
+            f'course_details_{self.id}',
+            f'course_modules_{self.id}',
+            f'course_teachers_{self.id}',
+            f'course_analytics_{self.id}',
+        ]
+        cache.delete_many(cache_keys)
+        
         super().save(*args, **kwargs)
-    
-    def update_rating(self):
-        """Обновляет средний рейтинг курса"""
-        avg_rating = self.course_reviews.aggregate(Avg('rating'))['rating__avg']
-        self.average_rating = round(avg_rating, 2) if avg_rating else 0
-        self.reviews_count = self.course_reviews.count()
-        self.save()
-    
-    def increment_sales(self):
-        """Увеличивает счетчик продаж"""
-        self.sales_count += 1
-        self.save()
-    
+
     def get_absolute_url(self):
-        """Возвращает URL курса"""
-        from django.urls import reverse
+        """Получает URL курса"""
         return reverse('course_detail', kwargs={'slug': self.slug})
+
+    def get_primary_teacher(self):
+        """Возвращает основного преподавателя курса"""
+        cache_key = f'course_primary_teacher_{self.id}'
+        teacher = cache.get(cache_key)
+        
+        if teacher is None:
+            teacher = self.user_roles.filter(
+                role='teacher',
+                is_primary=True
+            ).select_related('user').first()
+            
+            if teacher:
+                cache.set(cache_key, teacher, 3600)  # кешируем на 1 час
+                
+        return teacher
+
+    def get_teachers(self):
+        """Возвращает всех преподавателей курса"""
+        cache_key = f'course_teachers_{self.id}'
+        teachers = cache.get(cache_key)
+        
+        if teachers is None:
+            teachers = User.objects.filter(
+                course_roles__course=self,
+                course_roles__role='teacher'
+            ).distinct()
+            
+            cache.set(cache_key, list(teachers), 3600)  # кешируем на 1 час
+            
+        return teachers
+
+    def get_total_lessons(self):
+        """Возвращает общее количество уроков"""
+        if self.total_lessons > 0:
+            return self.total_lessons
+            
+        self.total_lessons = sum(
+            module.lessons.count() 
+            for module in self.modules.all()
+        )
+        self.save(update_fields=['total_lessons'])
+        
+        return self.total_lessons
+
+    def update_rating_stats(self):
+        """Обновляет статистику рейтинга"""
+        from django.db.models import Avg, Count
+        
+        stats = self.reviews.aggregate(
+            avg_rating=Avg('rating'),
+            count=Count('id')
+        )
+        
+        self.average_rating = stats['avg_rating'] or 0
+        self.reviews_count = stats['count']
+        self.save(update_fields=['average_rating', 'reviews_count'])
+
+    def update_student_stats(self):
+        """Обновляет статистику студентов"""
+        total_students = self.enrollments.count()
+        completed_students = self.enrollments.filter(status='completed').count()
+        
+        self.students_count = total_students
+        if total_students > 0:
+            self.completion_rate = (completed_students / total_students) * 100
+        
+        self.save(update_fields=['students_count', 'completion_rate'])
+
+    def is_ready_for_publication(self):
+        """Проверяет, готов ли курс к публикации"""
+        return all([
+            self.modules.exists(),  # есть хотя бы один модуль
+            self.get_total_lessons() > 0,  # есть уроки
+            self.cover_image,  # есть обложка
+            self.description,  # есть описание
+            self.get_primary_teacher()  # есть основной преподаватель
+        ])
 
 class Module(AutoRegisterAdmin, models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
@@ -250,7 +484,7 @@ class Lesson(AutoRegisterAdmin, models.Model):
             raise ValidationError('Для презентации необходимо загрузить файл')
 
 class Review(AutoRegisterAdmin, models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_reviews')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_reviews')
     rating = models.PositiveSmallIntegerField(
         'Оценка',
@@ -273,7 +507,7 @@ class Review(AutoRegisterAdmin, models.Model):
             self.created_at = timezone.now()
         self.updated_at = timezone.now()
         super().save(*args, **kwargs)
-        self.course.update_rating()
+        self.course.update_rating_stats()
 
 class Announcement(AutoRegisterAdmin, models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='announcements')
@@ -338,7 +572,7 @@ class Promocode(AutoRegisterAdmin, models.Model):
     max_uses = models.PositiveIntegerField('Максимальное количество использований')
     used_count = models.PositiveIntegerField('Использовано раз', default=0)
     courses = models.ManyToManyField(Course, related_name='promocodes')
-    created_by = models.ForeignKey(ProducerProfile, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField('Дата создания', default=timezone.now)
     updated_at = models.DateTimeField('Дата обновления', default=timezone.now)
 
@@ -370,7 +604,7 @@ class Promotion(AutoRegisterAdmin, models.Model):
     start_date = models.DateTimeField('Дата начала')
     end_date = models.DateTimeField('Дата окончания')
     courses = models.ManyToManyField(Course, related_name='promotions')
-    created_by = models.ForeignKey(ProducerProfile, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
 
     class Meta:
@@ -380,18 +614,61 @@ class Promotion(AutoRegisterAdmin, models.Model):
     def __str__(self):
         return self.title
 
-class CourseAnalytics(AutoRegisterAdmin, models.Model):
-    course = models.OneToOneField(Course, on_delete=models.CASCADE)
+class CourseAnalytics(models.Model):
+    """
+    Модель для хранения агрегированной аналитики курса
+    """
+    course = models.OneToOneField('Course', on_delete=models.CASCADE, related_name='analytics')
     views_count = models.PositiveIntegerField('Количество просмотров', default=0)
-    cart_adds_count = models.PositiveIntegerField('Добавлено в корзину', default=0)
-    purchases_count = models.PositiveIntegerField('Количество покупок', default=0)
+    completion_count = models.PositiveIntegerField('Количество завершений', default=0)
+    completion_rate = models.DecimalField('Процент завершения', max_digits=5, decimal_places=2, default=0)
+    total_ratings = models.PositiveIntegerField('Всего оценок', default=0)
+    rating_sum = models.PositiveIntegerField('Сумма оценок', default=0)
+    average_rating = models.DecimalField('Средний рейтинг', max_digits=3, decimal_places=2, default=0)
+    revenue = models.DecimalField('Доход', max_digits=10, decimal_places=2, default=0)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
 
     class Meta:
         verbose_name = 'Аналитика курса'
         verbose_name_plural = 'Аналитика курсов'
+        indexes = [
+            models.Index(fields=['course', '-updated_at']),
+            models.Index(fields=['-views_count']),
+            models.Index(fields=['-average_rating']),
+            models.Index(fields=['-revenue']),
+        ]
 
     def __str__(self):
-        return f"Аналитика: {self.course.title}"
+        return f'Аналитика курса {self.course.title}'
+
+class AnalyticsLog(models.Model):
+    """
+    Модель для хранения детальных логов аналитики
+    """
+    EVENT_TYPES = (
+        ('view', 'Просмотр'),
+        ('complete', 'Завершение'),
+        ('rate', 'Оценка'),
+        ('purchase', 'Покупка'),
+    )
+
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='analytics_logs')
+    event_type = models.CharField('Тип события', max_length=10, choices=EVENT_TYPES)
+    user = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='analytics_logs')
+    timestamp = models.DateTimeField('Время события', auto_now_add=True)
+    data = models.JSONField('Данные события', default=dict)
+
+    class Meta:
+        verbose_name = 'Лог аналитики'
+        verbose_name_plural = 'Логи аналитики'
+        indexes = [
+            models.Index(fields=['course', '-timestamp']),
+            models.Index(fields=['event_type', '-timestamp']),
+            models.Index(fields=['user', '-timestamp']),
+        ]
+
+    def __str__(self):
+        return f'{self.get_event_type_display()} - {self.course.title} - {self.timestamp}'
 
 class TrafficSource(AutoRegisterAdmin, models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -414,7 +691,7 @@ class EmailCampaign(AutoRegisterAdmin, models.Model):
     subject = models.CharField('Тема письма', max_length=200)
     content = models.TextField('Содержание')
     courses = models.ManyToManyField(Course, related_name='email_campaigns')
-    created_by = models.ForeignKey(ProducerProfile, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     sent_at = models.DateTimeField('Отправлено', null=True, blank=True)
     recipients_count = models.PositiveIntegerField('Количество получателей', default=0)
     opens_count = models.PositiveIntegerField('Количество открытий', default=0)
@@ -427,3 +704,108 @@ class EmailCampaign(AutoRegisterAdmin, models.Model):
 
     def __str__(self):
         return self.title
+
+class Specialization(AutoRegisterAdmin, models.Model):
+    name = models.CharField('Название', max_length=100, db_index=True)
+    description = models.TextField('Описание', blank=True)
+    slug = models.SlugField('URL', unique=True, db_index=True)
+    
+    # Вычисляемые поля
+    teachers_count = models.PositiveIntegerField('Количество преподавателей', default=0)
+    courses_count = models.PositiveIntegerField('Количество курсов', default=0)
+    total_students = models.PositiveIntegerField('Всего студентов', default=0)
+    average_teacher_rating = models.DecimalField('Средний рейтинг преподавателей', 
+                                               max_digits=3, decimal_places=2, default=0)
+    
+    # Метаданные
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    is_trending = models.BooleanField('Популярная специализация', default=False)
+
+    class Meta:
+        verbose_name = 'Специализация'
+        verbose_name_plural = 'Специализации'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['-teachers_count']),
+            models.Index(fields=['-courses_count']),
+            models.Index(fields=['-average_teacher_rating']),
+            models.Index(fields=['is_trending', '-teachers_count']),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def update_counts(self):
+        """Обновляет все вычисляемые поля"""
+        from django.db.models import Count, Avg
+        
+        # Получаем всех преподавателей специализации
+        teachers = User.objects.filter(
+            course_roles__role='teacher',
+            profile__specializations=self
+        ).distinct()
+        
+        # Подсчитываем количество преподавателей
+        self.teachers_count = teachers.count()
+        
+        # Получаем все курсы специализации
+        courses = Course.objects.filter(
+            user_roles__user__in=teachers,
+            user_roles__role='teacher'
+        ).distinct()
+        
+        # Подсчитываем количество курсов
+        self.courses_count = courses.count()
+        
+        # Подсчитываем уникальных студентов
+        self.total_students = Enrollment.objects.filter(
+            course__in=courses
+        ).values('student').distinct().count()
+        
+        # Вычисляем средний рейтинг преподавателей
+        avg_rating = teachers.aggregate(
+            avg=Avg('profile__rating')
+        )['avg']
+        self.average_teacher_rating = round(avg_rating, 2) if avg_rating else 0
+        
+        # Обновляем trending статус
+        self.is_trending = (
+            self.teachers_count >= 5 and 
+            self.courses_count >= 10 and 
+            self.average_teacher_rating >= 4.0
+        )
+        
+        self.save()
+
+    def get_statistics(self):
+        """Возвращает статистику специализации"""
+        return {
+            'teachers_count': self.teachers_count,
+            'courses_count': self.courses_count,
+            'total_students': self.total_students,
+            'average_rating': self.average_teacher_rating,
+            'is_trending': self.is_trending,
+        }
+
+    def get_top_teachers(self, limit=5):
+        """Возвращает топ преподавателей специализации"""
+        return User.objects.filter(
+            course_roles__role='teacher',
+            profile__specializations=self
+        ).order_by('-profile__rating')[:limit]
+
+    def get_popular_courses(self, limit=5):
+        """Возвращает популярные курсы специализации"""
+        return Course.objects.filter(
+            user_roles__user__profile__specializations=self,
+            user_roles__role='teacher',
+            status='published'
+        ).order_by('-students_count')[:limit]

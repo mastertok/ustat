@@ -1,0 +1,278 @@
+[
+    {
+        "model": "accounts.specialization",
+        "pk": 1,
+        "fields": {
+            "name": "Математика",
+            "description": "Преподавание математики всех уровней",
+            "slug": "mathematics"
+        }
+    },
+    {
+        "model": "accounts.specialization",
+        "pk": 2,
+        "fields": {
+            "name": "Физика",
+            "description": "Преподавание физики",
+            "slug": "physics"
+        }
+    },
+    {
+        "model": "accounts.specialization",
+        "pk": 3,
+        "fields": {
+            "name": "Программирование",
+            "description": "Обучение программированию",
+            "slug": "programming"
+        }
+    },
+    {
+        "model": "accounts.user",
+        "pk": 1,
+        "fields": {
+            "password": "pbkdf2_sha256$600000$cMgAHidQOvhvxXqk9vFQxz$w/+3lqYz4k8nBZ6YiP/7UDWxBjRGGVjrEyOK7Su9+Qw=",
+            "is_superuser": true,
+            "username": "admin",
+            "first_name": "Админ",
+            "last_name": "Системный",
+            "email": "admin@ustat.kg",
+            "is_staff": true,
+            "is_active": true,
+            "date_joined": "2025-01-24T09:00:00Z",
+            "role": "admin",
+            "bio": "Администратор системы",
+            "phone": "+996700000000",
+            "groups": [],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "accounts.user",
+        "pk": 2,
+        "fields": {
+            "password": "pbkdf2_sha256$600000$cMgAHidQOvhvxXqk9vFQxz$w/+3lqYz4k8nBZ6YiP/7UDWxBjRGGVjrEyOK7Su9+Qw=",
+            "is_superuser": false,
+            "username": "teacher1",
+            "first_name": "Асан",
+            "last_name": "Асанов",
+            "email": "teacher1@ustat.kg",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-01-24T09:00:00Z",
+            "role": "teacher",
+            "bio": "Опытный преподаватель математики",
+            "phone": "+996700000001",
+            "groups": [],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "accounts.teacherprofile",
+        "pk": 1,
+        "fields": {
+            "user": 2,
+            "experience_summary": "Более 10 лет опыта преподавания",
+            "achievements_summary": "Победитель конкурса 'Учитель года'",
+            "education_summary": "Кандидат физико-математических наук",
+            "rating": "4.80",
+            "students_count": 0,
+            "reviews_count": 0,
+            "social_links": {
+                "facebook": "https://facebook.com/teacher1",
+                "linkedin": "https://linkedin.com/in/teacher1"
+            },
+            "teaching_style": "Индивидуальный подход к каждому ученику",
+            "slug": "asan-asanov",
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "accounts.education",
+        "pk": 1,
+        "fields": {
+            "teacher": 1,
+            "institution": "КНУ им. Ж.Баласагына",
+            "degree": "Бакалавр",
+            "field_of_study": "Математика",
+            "start_date": "2015-09-01",
+            "end_date": "2019-06-30",
+            "description": "Математический факультет"
+        }
+    },
+    {
+        "model": "accounts.workexperience",
+        "pk": 1,
+        "fields": {
+            "teacher": 1,
+            "company": "Школа №1",
+            "position": "Учитель математики",
+            "start_date": "2019-09-01",
+            "end_date": null,
+            "description": "Преподавание математики в старших классах",
+            "is_current": true
+        }
+    },
+    {
+        "model": "accounts.achievement",
+        "pk": 1,
+        "fields": {
+            "teacher": 1,
+            "title": "Учитель года",
+            "date_received": "2024-12-01",
+            "issuer": "Министерство образования КР",
+            "description": "Победитель конкурса 'Учитель года 2024'"
+        }
+    },
+    {
+        "model": "courses.category",
+        "pk": 1,
+        "fields": {
+            "name": "Математика",
+            "slug": "mathematics",
+            "description": "Курсы по математике всех уровней",
+            "parent": null,
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "courses.category",
+        "pk": 2,
+        "fields": {
+            "name": "ОРТ",
+            "slug": "ort",
+            "description": "Курсы подготовки к ОРТ",
+            "parent": null,
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "courses.tag",
+        "pk": 1,
+        "fields": {
+            "name": "ОРТ",
+            "slug": "ort",
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "courses.tag",
+        "pk": 2,
+        "fields": {
+            "name": "Для начинающих",
+            "slug": "for-beginners",
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "courses.course",
+        "pk": 1,
+        "fields": {
+            "title": "Математика для ОРТ",
+            "slug": "math-for-ort",
+            "description": "Полный курс подготовки к ОРТ по математике",
+            "excerpt": "Подготовься к ОРТ по математике с опытным преподавателем",
+            "category": 1,
+            "teacher": 2,
+            "producer": null,
+            "cover_image": "",
+            "video_intro": null,
+            "max_students": 100,
+            "difficulty_level": "beginner",
+            "language": "ky",
+            "duration_minutes": 1800,
+            "enable_qa": true,
+            "enable_announcements": true,
+            "enable_reviews": true,
+            "course_type": "paid",
+            "price": "5000.00",
+            "currency": "KGS",
+            "discount_price": null,
+            "sales_count": 0,
+            "average_rating": "0.00",
+            "reviews_count": 0,
+            "status": "published",
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z",
+            "published_at": "2025-01-24T09:00:00Z",
+            "tags": [1, 2]
+        }
+    },
+    {
+        "model": "courses.module",
+        "pk": 1,
+        "fields": {
+            "course": 1,
+            "title": "Введение в математику ОРТ",
+            "description": "Базовые концепции и темы ОРТ по математике",
+            "order": 1
+        }
+    },
+    {
+        "model": "courses.lesson",
+        "pk": 1,
+        "fields": {
+            "module": 1,
+            "title": "Обзор математической части ОРТ",
+            "content_type": "video",
+            "content": "Подробный разбор структуры и типов задач в ОРТ по математике",
+            "video_url": "https://youtube.com/watch?v=example",
+            "order": 1,
+            "duration_minutes": 30
+        }
+    },
+    {
+        "model": "courses.review",
+        "pk": 1,
+        "fields": {
+            "course": 1,
+            "user": 1,
+            "rating": 5,
+            "text": "Отличный курс! Очень помог в подготовке к ОРТ",
+            "created_at": "2025-01-24T10:00:00Z",
+            "updated_at": "2025-01-24T10:00:00Z"
+        }
+    },
+    {
+        "model": "courses.announcement",
+        "pk": 1,
+        "fields": {
+            "course": 1,
+            "title": "Добро пожаловать на курс!",
+            "content": "Рад приветствовать всех на курсе подготовки к ОРТ по математике",
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "courses.enrollment",
+        "pk": 1,
+        "fields": {
+            "student": 1,
+            "course": 1,
+            "enrolled_at": "2025-01-24T09:00:00Z",
+            "status": "active",
+            "progress": 0,
+            "last_accessed": "2025-01-24T09:00:00Z"
+        }
+    },
+    {
+        "model": "courses.promocode",
+        "pk": 1,
+        "fields": {
+            "code": "WELCOME2025",
+            "discount_percent": 20,
+            "valid_from": "2025-01-01T00:00:00Z",
+            "valid_until": "2025-12-31T23:59:59Z",
+            "max_uses": 100,
+            "used_count": 0,
+            "created_by": 1,
+            "created_at": "2025-01-24T09:00:00Z",
+            "updated_at": "2025-01-24T09:00:00Z"
+        }
+    }
+]

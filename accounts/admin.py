@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
-    User, TeacherProfile, ProducerProfile,
-    Specialization, Education, WorkExperience, Achievement
+    User, Profile, Specialization, 
+    Education, WorkExperience, Achievement
 )
 
 # Register your models here.
@@ -26,32 +26,31 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
 
-@admin.register(TeacherProfile)
-class TeacherProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'get_specializations', 'total_experience_years', 'rating', 'students_count']
-    list_filter = ['specializations', 'rating']
-    search_fields = ['user__username', 'user__email', 'experience_summary']
-    filter_horizontal = ['specializations']
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'get_role', 'rating', 'created_at']
+    list_filter = ['user__role']
+    search_fields = ['user__username', 'user__email']
     
-    def get_specializations(self, obj):
-        return ", ".join([spec.name for spec in obj.specializations.all()])
-    get_specializations.short_description = 'Специализации'
+    def get_role(self, obj):
+        return obj.user.get_role_display()
+    get_role.short_description = 'Роль'
 
 @admin.register(Education)
 class EducationAdmin(admin.ModelAdmin):
-    list_display = ['teacher', 'institution', 'degree', 'field_of_study', 'start_date', 'end_date']
+    list_display = ['profile', 'institution', 'degree', 'field_of_study', 'start_date', 'end_date']
     list_filter = ['degree', 'institution']
     search_fields = ['institution', 'degree', 'field_of_study']
 
 @admin.register(WorkExperience)
 class WorkExperienceAdmin(admin.ModelAdmin):
-    list_display = ['teacher', 'company', 'position', 'start_date', 'end_date', 'is_current']
+    list_display = ['profile', 'company', 'position', 'start_date', 'end_date', 'is_current']
     list_filter = ['is_current', 'company']
     search_fields = ['company', 'position', 'description']
 
 @admin.register(Achievement)
 class AchievementAdmin(admin.ModelAdmin):
-    list_display = ['teacher', 'title', 'date_received', 'issuer']
+    list_display = ['profile', 'title', 'date_received', 'issuer']
     list_filter = ['date_received', 'issuer']
     search_fields = ['title', 'description', 'issuer']
 
@@ -60,8 +59,3 @@ class SpecializationAdmin(admin.ModelAdmin):
     list_display = ['name', 'slug']
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ['name', 'description']
-
-@admin.register(ProducerProfile)
-class ProducerProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'company')
-    search_fields = ('user__username', 'user__email', 'company')

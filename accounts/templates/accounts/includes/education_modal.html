@@ -1,0 +1,44 @@
+<!-- Модальное окно для добавления образования -->
+<div class="modal fade" id="educationModal" tabindex="-1" aria-labelledby="educationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="educationModalLabel">Добавить образование</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="educationForm" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="institution" class="form-label">Учебное заведение</label>
+                        <input type="text" class="form-control" id="institution" name="institution" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="degree" class="form-label">Степень/Квалификация</label>
+                        <input type="text" class="form-control" id="degree" name="degree" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="field_of_study" class="form-label">Направление обучения</label>
+                        <input type="text" class="form-control" id="field_of_study" name="field_of_study" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Дата начала</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">Дата окончания</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveEducation">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>

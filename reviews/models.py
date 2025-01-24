@@ -5,8 +5,8 @@ from courses.models import Course
 from core.models import AutoRegisterAdmin
 
 class Review(AutoRegisterAdmin, models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_reviews')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_reviews')
     rating = models.PositiveSmallIntegerField(
         'Оценка',
         validators=[MinValueValidator(1), MaxValueValidator(5)]

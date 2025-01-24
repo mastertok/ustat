@@ -1,304 +1,293 @@
-from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from django.core.files import File
-from accounts.models import TeacherProfile, Achievement, Education, WorkExperience, ProducerProfile, Specialization
-from courses.models import Course, Module, Lesson, Announcement, Category, Tag
-from reviews.models import Review
-from faker import Faker
+import json
 import random
-import os
-from django.utils.text import slugify
-from django.db import transaction
-from django.db.models.signals import post_save
-from accounts.signals import create_teacher_profile
+from datetime import datetime, timedelta
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+from accounts.models import (
+    Specialization, TeacherProfile, Education, WorkExperience, 
+    Achievement, StudentProfile, ProducerProfile
+)
+from courses.models import (
+    Category, Tag, Course, Module, Lesson, Review, Announcement,
+    Enrollment, Promocode, Promotion, CourseAnalytics, TrafficSource,
+    EmailCampaign
+)
 
 User = get_user_model()
-fake = Faker(['ru_RU'])
 
 class Command(BaseCommand):
-    help = 'Generates demo data for courses, modules, lessons, and teacher profiles'
+    help = 'Генерирует расширенный набор демо-данных'
+
+    def generate_users(self, num_users=100):
+        users = []
+        # Создаем фиксированное количество пользователей каждой роли
+        for i in range(num_users):
+            if i < 70:  # Первые 70 - студенты
+                role = 'student'
+            elif i < 90:  # Следующие 20 - учителя
+                role = 'teacher'
+            else:  # Последние 10 - продюсеры
+                role = 'producer'
+            
+            user = {
+                "model": "accounts.user",
+                "pk": i + 100,
+                "fields": {
+                    "password": "pbkdf2_sha256$600000$default$password",
+                    "is_superuser": False,
+                    "username": f"{role}{i}",
+                    "first_name": f"Имя{i}",
+                    "last_name": f"Фамилия{i}",
+                    "email": f"{role}{i}@ustat.kg",
+                    "is_staff": False,
+                    "is_active": True,
+                    "date_joined": timezone.now().isoformat(),
+                    "role": role,
+                    "bio": f"Биография пользователя {i}",
+                    "phone": f"+99670000{i:04d}",
+                    "groups": [],
+                    "user_permissions": []
+                }
+            }
+            users.append(user)
+        return users
+
+    def generate_specializations(self, num_specs=20):
+        specs = []
+        subjects = [
+            "Математика", "Физика", "Химия", "Биология", "История",
+            "География", "Литература", "Английский язык", "Программирование",
+            "Экономика", "Психология", "Философия", "Социология", "Право",
+            "Маркетинг", "Дизайн", "Музыка", "Искусство", "Спорт", "Медицина"
+        ]
+        for i, subject in enumerate(subjects[:num_specs]):
+            spec = {
+                "model": "accounts.specialization",
+                "pk": i + 100,
+                "fields": {
+                    "name": subject,
+                    "description": f"Преподавание {subject.lower()}",
+                    "slug": self.slugify_ru(subject)
+                }
+            }
+            specs.append(spec)
+        return specs
+
+    def generate_teacher_profiles(self, num_profiles=20):
+        profiles = []
+        # Генерируем профили только для учителей (ID от 170 до 189)
+        for i in range(num_profiles):
+            teacher_id = 170 + i  # ID пользователей-учителей
+            profile = {
+                "model": "accounts.teacherprofile",
+                "pk": i + 100,
+                "fields": {
+                    "user": teacher_id,
+                    "experience_summary": f"Опыт преподавания {random.randint(1, 20)} лет",
+                    "achievements_summary": "Различные достижения и награды",
+                    "education_summary": "Высшее образование",
+                    "rating": str(round(random.uniform(4.0, 5.0), 2)),
+                    "students_count": random.randint(10, 1000),
+                    "reviews_count": random.randint(5, 100),
+                    "social_links": {
+                        "facebook": f"https://facebook.com/teacher{i}",
+                        "linkedin": f"https://linkedin.com/in/teacher{i}"
+                    },
+                    "teaching_style": "Индивидуальный подход к каждому ученику",
+                    "slug": f"teacher-{i}",
+                    "created_at": timezone.now().isoformat(),
+                    "updated_at": timezone.now().isoformat()
+                }
+            }
+            profiles.append(profile)
+        return profiles
+
+    def generate_student_profiles(self, num_profiles=70):
+        profiles = []
+        # Генерируем профили только для студентов (ID от 100 до 169)
+        for i in range(num_profiles):
+            student_id = 100 + i  # ID пользователей-студентов
+            profile = {
+                "model": "accounts.studentprofile",
+                "pk": i + 100,
+                "fields": {
+                    "user": student_id,
+                    "interests": f"Интересы студента {i}",
+                    "education_level": random.choice(['school', 'bachelor', 'master', 'phd'])
+                }
+            }
+            profiles.append(profile)
+        return profiles
+
+    def generate_producer_profiles(self, num_profiles=10):
+        profiles = []
+        # Генерируем профили только для продюсеров (ID от 190 до 199)
+        for i in range(num_profiles):
+            producer_id = 190 + i  # ID пользователей-продюсеров
+            profile = {
+                "model": "accounts.producerprofile",
+                "pk": i + 100,
+                "fields": {
+                    "user": producer_id,
+                    "company": f"Компания {i}",
+                    "portfolio": f"https://portfolio.com/producer{i}"
+                }
+            }
+            profiles.append(profile)
+        return profiles
+
+    def generate_courses(self, num_courses=100):
+        courses = []
+        for i in range(num_courses):
+            course = {
+                "model": "courses.course",
+                "pk": i + 100,
+                "fields": {
+                    "title": f"Курс {i}",
+                    "slug": f"course-{i}",
+                    "description": f"Описание курса {i}",
+                    "excerpt": f"Краткое описание курса {i}",
+                    "category": random.randint(1, 10),
+                    "teacher": random.randint(170, 189),  # ID учителей
+                    "producer": None,
+                    "cover_image": "",
+                    "video_intro": None,
+                    "max_students": random.randint(50, 200),
+                    "difficulty_level": random.choice(["beginner", "intermediate", "advanced"]),
+                    "language": random.choice(["ky", "ru"]),
+                    "duration_minutes": random.randint(600, 3600),
+                    "enable_qa": True,
+                    "enable_announcements": True,
+                    "enable_reviews": True,
+                    "course_type": random.choice(["free", "paid"]),
+                    "price": str(random.randint(1000, 10000)) + ".00",
+                    "currency": "KGS",
+                    "discount_price": None,
+                    "sales_count": random.randint(0, 100),
+                    "average_rating": str(round(random.uniform(4.0, 5.0), 2)),
+                    "reviews_count": random.randint(0, 50),
+                    "status": "published",
+                    "created_at": timezone.now().isoformat(),
+                    "updated_at": timezone.now().isoformat(),
+                    "published_at": timezone.now().isoformat(),
+                    "tags": [random.randint(1, 10) for _ in range(random.randint(1, 3))]
+                }
+            }
+            courses.append(course)
+        return courses
+
+    def generate_modules(self, num_modules=300):
+        modules = []
+        for i in range(num_modules):
+            module = {
+                "model": "courses.module",
+                "pk": i + 100,
+                "fields": {
+                    "course": random.randint(100, 199),  # ID курсов
+                    "title": f"Модуль {i}",
+                    "description": f"Описание модуля {i}",
+                    "order": random.randint(1, 10)
+                }
+            }
+            modules.append(module)
+        return modules
+
+    def generate_lessons(self, num_lessons=1000):
+        lessons = []
+        content_types = ["video", "text", "test", "presentation"]
+        for i in range(num_lessons):
+            content_type = random.choice(content_types)
+            lesson = {
+                "model": "courses.lesson",
+                "pk": i + 100,
+                "fields": {
+                    "module": random.randint(100, 399),  # ID модулей
+                    "title": f"Урок {i}",
+                    "content_type": content_type,
+                    "content": f"Содержание урока {i}",
+                    "video_url": f"https://youtube.com/watch?v=example{i}" if content_type == "video" else None,
+                    "order": random.randint(1, 10),
+                    "duration_minutes": random.randint(15, 90)
+                }
+            }
+            lessons.append(lesson)
+        return lessons
+
+    def generate_reviews(self, num_reviews=500):
+        reviews = []
+        for i in range(num_reviews):
+            review = {
+                "model": "courses.review",
+                "pk": i + 100,
+                "fields": {
+                    "course": random.randint(100, 199),  # ID курсов
+                    "user": random.randint(100, 169),    # ID пользователей
+                    "rating": random.randint(3, 5),
+                    "text": f"Отзыв о курсе {i}",
+                    "created_at": timezone.now().isoformat(),
+                    "updated_at": timezone.now().isoformat()
+                }
+            }
+            reviews.append(review)
+        return reviews
+
+    def generate_enrollments(self, num_enrollments=300):
+        enrollments = []
+        statuses = ["active", "completed", "dropped"]
+        for i in range(num_enrollments):
+            status = random.choice(statuses)
+            enrollment = {
+                "model": "courses.enrollment",
+                "pk": i + 100,
+                "fields": {
+                    "student": random.randint(100, 169),  # ID студентов
+                    "course": random.randint(100, 199),   # ID курсов
+                    "enrolled_at": timezone.now().isoformat(),
+                    "status": status,
+                    "completed_at": timezone.now().isoformat() if status == "completed" else None,
+                    "progress": random.randint(0, 100),
+                    "last_accessed": timezone.now().isoformat()
+                }
+            }
+            enrollments.append(enrollment)
+        return enrollments
+
+    @staticmethod
+    def slugify_ru(text):
+        """Простая транслитерация для русских слов"""
+        ru_en = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
+            'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        }
+        text = text.lower()
+        slug = ''
+        for char in text:
+            slug += ru_en.get(char, char)
+        return slug.replace(' ', '-')
 
     def handle(self, *args, **options):
-        try:
-            # Отключаем сигнал создания профиля учителя
-            post_save.disconnect(create_teacher_profile, sender=User)
+        # Сначала генерируем базовые сущности
+        data = []
+        
+        # Генерируем данные в правильном порядке
+        data.extend(self.generate_users(100))  # 70 студентов, 20 учителей, 10 продюсеров
+        data.extend(self.generate_specializations(20))
+        data.extend(self.generate_student_profiles(70))  # Профили для студентов
+        data.extend(self.generate_teacher_profiles(20))  # Профили для учителей
+        data.extend(self.generate_producer_profiles(10))  # Профили для продюсеров
+        data.extend(self.generate_courses(100))
+        data.extend(self.generate_modules(300))
+        data.extend(self.generate_lessons(1000))
+        data.extend(self.generate_reviews(500))
+        data.extend(self.generate_enrollments(300))
 
-            with transaction.atomic():
-                # Очищаем существующие данные
-                self.stdout.write('Очищаем существующие данные...')
-                Course.objects.all().delete()
-                Module.objects.all().delete()
-                Lesson.objects.all().delete()
-                Announcement.objects.all().delete()
-                Achievement.objects.all().delete()
-                Education.objects.all().delete()
-                WorkExperience.objects.all().delete()
-                Category.objects.all().delete()
-                Tag.objects.all().delete()
-                Review.objects.all().delete()
-                TeacherProfile.objects.all().delete()
-                ProducerProfile.objects.all().delete()
-                User.objects.filter(is_superuser=False).delete()
-                Specialization.objects.all().delete()
+        # Сохраняем в файл
+        output_file = 'demo/fixtures/generated_demo_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
 
-                # Создаем специализации
-                self.stdout.write('Создаем специализации...')
-                specializations = []
-                specialization_names = [
-                    'Веб-разработка', 'Мобильная разработка', 'Data Science', 
-                    'UI/UX Дизайн', 'Графический дизайн', 'Маркетинг', 
-                    'SEO-оптимизация', 'SMM', 'Копирайтинг', 'Контент-маркетинг',
-                    'Английский язык', 'Китайский язык', 'Математика', 
-                    'Физика', 'Химия', 'Биология', 'История', 'Философия',
-                    'Психология', 'Экономика'
-                ]
-                for i, name in enumerate(specialization_names, 1):
-                    specialization = Specialization.objects.create(
-                        name=name,
-                        slug=f"{slugify(name)}-{i}",
-                        description=fake.text(max_nb_chars=200)
-                    )
-                    specializations.append(specialization)
-                    self.stdout.write(f'Создана специализация: {specialization.name}')
-
-                # Создаем пользователей
-                self.stdout.write('Создаем пользователей...')
-                students = []
-                for i in range(40):  # 40 студентов
-                    user = User.objects.create_user(
-                        username=f'student{i+1}',
-                        email=f'student{i+1}@example.com',
-                        password='student12345',
-                        first_name=fake.first_name(),
-                        last_name=fake.last_name(),
-                        role='student'
-                    )
-                    students.append(user)
-                    self.stdout.write(f'Создан студент: {user.get_full_name()}')
-
-                producers = []
-                for i in range(30):  # 30 продюсеров
-                    user = User.objects.create_user(
-                        username=f'producer{i+1}',
-                        email=f'producer{i+1}@example.com',
-                        password='producer12345',
-                        first_name=fake.first_name(),
-                        last_name=fake.last_name(),
-                        role='producer'
-                    )
-                    producer_profile = ProducerProfile.objects.create(
-                        user=user,
-                        company=fake.company(),
-                        portfolio=fake.url()
-                    )
-                    producers.append(user)
-                    self.stdout.write(f'Создан продюсер: {user.get_full_name()}')
-
-                teachers = []
-                for i in range(50):  # 50 учителей
-                    user = User.objects.create_user(
-                        username=f'teacher{i+1}',
-                        email=f'teacher{i+1}@example.com',
-                        password='teacher12345',
-                        first_name=fake.first_name(),
-                        last_name=fake.last_name(),
-                        role='teacher'
-                    )
-                    teacher_profile = TeacherProfile.objects.create(
-                        user=user,
-                        experience_summary=fake.text(max_nb_chars=200),
-                        education_summary=fake.text(max_nb_chars=200),
-                        teaching_style=fake.text(max_nb_chars=100),
-                        slug=f'teacher-{i+1}'
-                    )
-                    # Добавляем случайные специализации
-                    teacher_profile.specializations.add(*random.sample(specializations, k=random.randint(1, 3)))
-                    teachers.append(user)
-                    self.stdout.write(f'Создан учитель: {user.get_full_name()}')
-
-                # Создаем категории
-                self.stdout.write('Создаем категории...')
-                categories = []
-                category_names = [
-                    'Программирование', 'Дизайн', 'Бизнес', 'Маркетинг', 
-                    'Иностранные языки', 'Музыка', 'Фотография', 'Саморазвитие',
-                    'Математика', 'Физика'
-                ]
-                for i, name in enumerate(category_names, 1):
-                    category = Category.objects.create(
-                        name=name,
-                        slug=f"{slugify(name)}-{i}",
-                        description=fake.text(max_nb_chars=200)
-                    )
-                    categories.append(category)
-                    self.stdout.write(f'Создана категория: {category.name}')
-
-                # Создаем теги
-                self.stdout.write('Создаем теги...')
-                tags = []
-                tag_names = [
-                    'Для начинающих', 'Продвинутый уровень', 'Практика', 
-                    'Теория', 'Интенсив', 'С нуля', 'Мастер-класс', 'Для детей'
-                ]
-                for i, name in enumerate(tag_names, 1):
-                    tag = Tag.objects.create(
-                        name=name,
-                        slug=f"{slugify(name)}-{i}"
-                    )
-                    tags.append(tag)
-                    self.stdout.write(f'Создан тег: {tag.name}')
-
-                # Создаем курсы для каждого учителя
-                self.stdout.write('Создаем курсы...')
-                courses = []
-                for teacher in teachers:
-                    for i in range(random.randint(1, 3)):  # 1-3 курса на учителя
-                        course = Course.objects.create(
-                            title=f"{fake.word().capitalize()} {fake.word()}",
-                            slug=f"course-{len(courses)+1}",
-                            description=fake.text(max_nb_chars=500),
-                            excerpt=fake.text(max_nb_chars=200),
-                            teacher=teacher.teacher_profile,
-                            category=random.choice(categories),
-                            max_students=random.randint(20, 100),
-                            difficulty_level=random.choice(['beginner', 'intermediate', 'advanced']),
-                            language=random.choice(['ru', 'ky', 'en']),
-                            duration_minutes=random.randint(600, 4800),
-                            enable_qa=True,
-                            enable_announcements=True,
-                            enable_reviews=True,
-                            course_type=random.choice(['free', 'paid']),
-                            price=str(random.randint(3000, 15000)) + ".00",
-                            currency="KGS",
-                            status="published",
-                            published_at=timezone.now()
-                        )
-                        # Добавляем случайные теги
-                        course.tags.add(*random.sample(tags, k=random.randint(2, 4)))
-                        courses.append(course)
-                        self.stdout.write(f'Создан курс: {course.title}')
-
-                # Создаем отзывы
-                self.stdout.write('Создаем отзывы...')
-                for i in range(50):  # 50 отзывов
-                    course = random.choice(courses)
-                    student = random.choice(students)
-                    review = Review.objects.create(
-                        course=course,
-                        user=student,
-                        rating=random.randint(3, 5),
-                        comment=fake.text(max_nb_chars=200)
-                    )
-                    self.stdout.write(f'Создан отзыв для курса {course.title} от {student.get_full_name()}')
-
-                # Создаем модули
-                self.stdout.write('Создаем модули...')
-                modules = []
-                for course in courses:
-                    for i in range(5):  # 5 модулей на курс
-                        module = Module.objects.create(
-                            course=course,
-                            title=f"Модуль {i+1}: {fake.word().capitalize()}",
-                            description=fake.text(max_nb_chars=200),
-                            order=i+1
-                        )
-                        modules.append(module)
-                        self.stdout.write(f'Создан модуль: {module.title}')
-
-                # Создаем уроки
-                self.stdout.write('Создаем уроки...')
-                for module in modules:
-                    for i in range(6):  # 6 уроков на модуль
-                        lesson = Lesson.objects.create(
-                            module=module,
-                            title=f"Урок {i+1}: {fake.word().capitalize()}",
-                            content_type=random.choice(['video', 'text', 'test', 'presentation']),
-                            content=fake.text(max_nb_chars=300),
-                            order=i+1,
-                            duration_minutes=random.randint(30, 90)
-                        )
-                        self.stdout.write(f'Создан урок: {lesson.title}')
-
-                # Создаем объявления
-                self.stdout.write('Создаем объявления...')
-                for course in courses:
-                    for i in range(random.randint(1, 3)):  # 1-3 объявления на курс
-                        announcement = Announcement.objects.create(
-                            course=course,
-                            title=f"Объявление: {fake.sentence()}",
-                            content=fake.text(max_nb_chars=500),
-                            created_at=timezone.now()
-                        )
-                        self.stdout.write(f'Создано объявление: {announcement.title}')
-
-                # Создаем достижения для учителей
-                self.stdout.write('Создаем достижения...')
-                for teacher in teachers:
-                    for i in range(random.randint(1, 3)):  # 1-3 достижения на учителя
-                        achievement = Achievement.objects.create(
-                            teacher=teacher.teacher_profile,
-                            title=f"Достижение: {fake.sentence()}",
-                            date_received=fake.date_between(start_date='-5y', end_date='today'),
-                            issuer=fake.company(),
-                            description=fake.text(max_nb_chars=200)
-                        )
-                        self.stdout.write(f'Создано достижение: {achievement.title}')
-
-                # Создаем образование для учителей
-                self.stdout.write('Создаем образование...')
-                for teacher in teachers:
-                    for i in range(random.randint(1, 3)):  # 1-3 записи об образовании на учителя
-                        education = Education.objects.create(
-                            teacher=teacher.teacher_profile,
-                            institution=fake.company(),
-                            degree=random.choice(['Бакалавр', 'Магистр', 'PhD']),
-                            field_of_study=fake.job(),
-                            start_date=fake.date_between(start_date='-10y', end_date='-5y'),
-                            end_date=fake.date_between(start_date='-5y', end_date='-1y'),
-                            description=fake.text(max_nb_chars=200)
-                        )
-                        self.stdout.write(f'Создано образование: {education.degree} в {education.institution}')
-
-                # Создаем опыт работы для учителей
-                self.stdout.write('Создаем опыт работы...')
-                for teacher in teachers:
-                    for i in range(random.randint(1, 3)):  # 1-3 записи об опыте работы на учителя
-                        is_current = i == 0
-                        work_exp = WorkExperience.objects.create(
-                            teacher=teacher.teacher_profile,
-                            company=fake.company(),
-                            position=fake.job(),
-                            start_date=fake.date_between(start_date='-10y', end_date='-1y'),
-                            end_date=None if is_current else fake.date_between(start_date='-1y', end_date='today'),
-                            description=fake.text(max_nb_chars=200),
-                            is_current=is_current
-                        )
-                        self.stdout.write(f'Создан опыт работы: {work_exp.position} в {work_exp.company}')
-
-                self.stdout.write(self.style.SUCCESS('\nДемо данные успешно сгенерированы\n'))
-                
-                # Выводим статистику
-                self.stdout.write('Статистика:')
-                self.stdout.write(f'Специализаций: {Specialization.objects.count()}')
-                self.stdout.write(f'Студентов: {User.objects.filter(role="student").count()}')
-                self.stdout.write(f'Продюсеров: {User.objects.filter(role="producer").count()}')
-                self.stdout.write(f'Учителей: {User.objects.filter(role="teacher").count()}')
-                self.stdout.write(f'Категорий: {Category.objects.count()}')
-                self.stdout.write(f'Тегов: {Tag.objects.count()}')
-                self.stdout.write(f'Курсов: {Course.objects.count()}')
-                self.stdout.write(f'Модулей: {Module.objects.count()}')
-                self.stdout.write(f'Уроков: {Lesson.objects.count()}')
-                self.stdout.write(f'Объявлений: {Announcement.objects.count()}')
-                self.stdout.write(f'Отзывов: {Review.objects.count()}')
-                self.stdout.write(f'Достижений: {Achievement.objects.count()}')
-                self.stdout.write(f'Записей об образовании: {Education.objects.count()}')
-                self.stdout.write(f'Записей об опыте работы: {WorkExperience.objects.count()}')
-
-            # Восстанавливаем сигнал создания профиля учителя
-            post_save.connect(create_teacher_profile, sender=User)
-
-        except Exception as e:
-            # Восстанавливаем сигнал создания профиля учителя в случае ошибки
-            post_save.connect(create_teacher_profile, sender=User)
-            self.stdout.write(self.style.ERROR(f'Произошла ошибка: {str(e)}'))
+        self.stdout.write(self.style.SUCCESS(f'Сгенерировано {len(data)} записей'))
